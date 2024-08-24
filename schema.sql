@@ -43,8 +43,8 @@ INSERT INTO garajes (id, estado) VALUES
 
 -- Inserta usuarios de ejemplo
 INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES
-('usuario1', 'password1', 'ID001', '1234'),
-('usuario2', 'password2', 'ID002', '5678');
+('Eduar de Jesus Pila Franco', 'macguiver15', '1003294451', '2712'),
+('Moises Guzman Tovar', '2704', '1003309107', '1234');
 
 -- Inserta encomiendas de ejemplo
 INSERT INTO encomiendas (destinatario_id, descripcion) VALUES
