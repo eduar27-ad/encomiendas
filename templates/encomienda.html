@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-center mb-4">Registrar Nueva Encomienda</h1>
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <form method="post">
+            <div class="mb-3">
+                <label for="destinatario_id" class="form-label">Destinatario</label>
+                <select class="form-select" id="destinatario_id" name="destinatario_id" required>
+                    {% for usuario in usuarios %}
+                    <option value="{{ usuario['id'] }}">{{ usuario['username'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="descripcion" class="form-label">Descripción</label>
+                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Registrar Encomienda</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

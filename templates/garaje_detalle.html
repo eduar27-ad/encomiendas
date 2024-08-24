@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-center mb-4">Detalle del Garaje {{ garaje['nombre'] }}</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Estado: {{ garaje['estado'] }}</h5>
+        {% if encomienda %}
+        <p>Encomienda para: {{ encomienda['username'] }}</p>
+        <p>Descripción: {{ encomienda['descripcion'] }}</p>
+        <p>Fecha de llegada: {{ encomienda['fecha_llegada'] }}</p>
+        <form method="post">
+            <button type="submit" class="btn btn-success">Marcar como Entregado</button>
+        </form>
+        {% else %}
+        <p>No hay encomienda asignada a este garaje.</p>
+        {% endif %}
+    </div>
+</div>
+<a href="{{ url_for('index') }}" class="btn btn-primary mt-4">Volver al Inicio</a>
+{% endblock %}

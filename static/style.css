@@ -1,0 +1,11 @@
+.disponible {
+    background-color: #00ff00;  /* Verde claro */
+}
+
+.ocupado {
+    background-color: #ffff00;  /* Amarillo claro */
+}
+
+.fuera-de-servicio {
+    background-color: #ff4800;  /* Rojo claro */
+}

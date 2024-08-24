@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-center mb-4">Sistema de Gestión de Encomiendas</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Validar Encomienda</h5>
+                <form action="{{ url_for('validar_encomienda') }}" method="post">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="id_encomienda" placeholder="ID de Encomienda" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="id_usuario" placeholder="ID de Usuario" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Validar y Asignar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="text-center mb-3">Estado de Estacionamientos</h2>
+<div id="estacionamientos" class="row justify-content-center">
+    {% for estacionamiento in estacionamientos %}
+    <div class="col-2 m-2">
+        <div class="estacionamiento {{ estacionamiento.estado }} p-3 text-center" 
+             data-id="{{ estacionamiento.id }}" 
+             onclick="marcarEntregado('{{ estacionamiento.id }}')">
+            {{ estacionamiento.nombre }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="mensajeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mensaje del Sistema</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="mensajeModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function marcarEntregado(id) {
+    document.getElementById('mensajeModalBody').textContent = `Marcando como entregado el estacionamiento ${id}`;
+    var modal = new bootstrap.Modal(document.getElementById('mensajeModal'));
+    modal.show();
+}
+</script>
+{% endblock %}
