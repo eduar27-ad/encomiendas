@@ -5,8 +5,12 @@
     <div class="col-md-6 offset-md-3">
         <form method="post">
             <div class="mb-3">
-                <label for="destinatario" class="form-label">Destinatario</label>
-                <input type="text" class="form-control" id="destinatario" name="destinatario" required>
+                <label for="destinatario_id" class="form-label">Destinatario</label>
+                <select class="form-select" id="destinatario_id" name="destinatario_id" required>
+                    {% for usuario in usuarios %}
+                    <option value="{{ usuario['id'] }}">{{ usuario['username'] }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="mb-3">
                 <label for="descripcion" class="form-label">Descripción</label>
