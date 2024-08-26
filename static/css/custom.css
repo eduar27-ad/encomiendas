@@ -1,0 +1,89 @@
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --background-color: #ffffff;
+    --text-color: #333333;
+    --modal-background: #ffffff;
+    --modal-text: #333333;
+    --estacionamiento-disponible: #28a745;
+    --estacionamiento-ocupado: #ffc107;
+    --estacionamiento-fuera-servicio: #dc3545;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.theme-dark {
+    --primary-color: #0056b3;
+    --secondary-color: #545b62;
+    --background-color: #333333;
+    --text-color: #ffffff;
+    --modal-background: #444444;
+    --modal-text: #ffffff;
+    --estacionamiento-disponible: #1e7e34;
+    --estacionamiento-ocupado: #d39e00;
+    --estacionamiento-fuera-servicio: #bd2130;
+}
+
+.modal-content {
+    background-color: var(--modal-background);
+    color: var(--modal-text);
+}
+
+.modal-header {
+    border-bottom-color: var(--secondary-color);
+}
+
+.modal-footer {
+    border-top-color: var(--secondary-color);
+}
+
+.navbar {
+    background-color: var(--background-color) !important;
+}
+
+.navbar-light .navbar-nav .nav-link,
+.navbar-light .navbar-brand {
+    color: var(--text-color) !important;
+}
+
+.theme-dark .navbar {
+    border-bottom: 1px solid var(--secondary-color);
+}
+
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+/* Estilos para estacionamientos */
+.estacionamiento {
+    width: 100%;
+    height: 50px;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.disponible { background-color: var(--estacionamiento-disponible); }
+.ocupado { background-color: var(--estacionamiento-ocupado); }
+.fuera-de-servicio { background-color: var(--estacionamiento-fuera-servicio); }
+
+/* Animación del modal */
+.modal.fade-scale .modal-dialog {
+    transform: scale(0.7);
+    opacity: 0;
+    transition: all 0.3s;
+}
+
+.modal.fade-scale.show .modal-dialog {
+    transform: scale(1);
+    opacity: 1;
+}

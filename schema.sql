@@ -36,6 +36,17 @@ CREATE TABLE alertas (
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+--registro de las asignaciones de estacionamientos a usuarios
+CREATE TABLE asignaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER,
+    garaje_id TEXT,
+    fecha_entrada TIMESTAMP,
+    fecha_salida TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    FOREIGN KEY (garaje_id) REFERENCES garajes(id)
+);
+
 -- Inicializa los garajes
 INSERT INTO garajes (id, estado) VALUES
 ('A1', 'disponible'), ('A2', 'disponible'), ('A3', 'disponible'), ('A4', 'disponible'), ('A5', 'disponible'),
