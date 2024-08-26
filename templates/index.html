@@ -48,143 +48,177 @@
 
 <!-- Modal para mostrar resultados -->
 <div class="modal fade" id="resultadoModal" tabindex="-1" aria-labelledby="resultadoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="resultadoModalLabel">Resultado de la Consulta</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div id="infoUsuario"></div>
-          <div id="listaEncomiendas"></div>
-          <div id="activarEntradaContainer" class="mt-3" style="display: none;">
-            <button id="btnActivarEntrada" class="btn btn-success">Activar Entrada</button>
-          </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultadoModalLabel">Resultado de la Consulta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="infoUsuario"></div>
+        <div id="listaEncomiendas"></div>
+        <div id="activarEntradaContainer" class="mt-3" style="display: none;">
+          <button id="btnActivarEntrada" class="btn btn-success">Activar Entrada</button>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- Modal para confirmación -->
+<div class="modal fade" id="confirmacionModal" tabindex="-1" aria-labelledby="confirmacionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmacionModalLabel">Confirmación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Este usuario ya está en un garaje recibiendo una entrega. ¿Desea recibir estas encomiendas adicionales en el mismo garaje?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmarEntrada">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal para mostrar asignación de estacionamiento -->
 <div class="modal fade" id="asignacionModal" tabindex="-1" aria-labelledby="asignacionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="asignacionModalLabel">Asignación de Estacionamiento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p id="mensajeAsignacion"></p>
-        </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="asignacionModalLabel">Asignación de Estacionamiento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="mensajeAsignacion"></p>
       </div>
     </div>
   </div>
-  {% endblock %}
-  
-  {% block extra_js %}
-  <script>
-  document.addEventListener('DOMContentLoaded', function() {
-      const consultaForm = document.getElementById('consultaForm');
-      const infoUsuario = document.getElementById('infoUsuario');
-      const listaEncomiendas = document.getElementById('listaEncomiendas');
-      const activarEntradaContainer = document.getElementById('activarEntradaContainer');
-      const btnActivarEntrada = document.getElementById('btnActivarEntrada');
-      const resultadoModal = new bootstrap.Modal(document.getElementById('resultadoModal'));
-      const asignacionModal = new bootstrap.Modal(document.getElementById('asignacionModal'));
-      const mensajeAsignacion = document.getElementById('mensajeAsignacion');
-  
-      consultaForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          // Limpiar los campos del formulario
-          const formData = new FormData(consultaForm);
-          fetch('/consultar_encomienda', {
-              method: 'POST',
-              body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  infoUsuario.innerHTML = `<p>Usuario: ${data.usuario}</p>`;
-                  if (data.encomiendas.length > 0) {
-                      listaEncomiendas.innerHTML = '<h6>Encomiendas pendientes:</h6><ul>' +
-                          data.encomiendas.map(e => `
-                              <li>
-                                  <input type="checkbox" id="encomienda_${e.id}" name="encomiendas" value="${e.id}">
-                                  <label for="encomienda_${e.id}">${e.descripcion} - Llegó: ${e.fecha}</label>
-                              </li>`).join('') +
-                          '</ul>';
-                      activarEntradaContainer.style.display = 'block';
-                  } else {
-                      listaEncomiendas.innerHTML = '<p>No hay encomiendas pendientes.</p>';
-                      activarEntradaContainer.style.display = 'none';
-                  }
-              } else {
-                  infoUsuario.innerHTML = `<p class="text-danger">${data.message}</p>`;
-                  listaEncomiendas.innerHTML = '';
-                  activarEntradaContainer.style.display = 'none';
-              }
-              resultadoModal.show();
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              infoUsuario.innerHTML = '<p class="text-danger">Hubo un error al procesar la solicitud.</p>';
-              listaEncomiendas.innerHTML = '';
-              activarEntradaContainer.style.display = 'none';
-              resultadoModal.show();
-          })
-          .finally(() => {
-              consultaForm.reset(); // Limpiar el formulario después de la consulta
-          });
-      });
-  
-      btnActivarEntrada.addEventListener('click', function() {
-          const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked')).map(cb => cb.value);
-          if (encomiendas_seleccionadas.length === 0) {
-              alert('Por favor, seleccione al menos una encomienda.');
-              return;
-          }
-          fetch('/activar_entrada', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
-                  resultadoModal.hide();
-                  asignacionModal.show();
-                  // Actualizar el estado del estacionamiento en la interfaz
-                  const estacionamiento = document.querySelector(`.estacionamiento:not(.ocupado)`);
-                  if (estacionamiento) {
-                      estacionamiento.classList.remove('disponible');
-                      estacionamiento.classList.add('ocupado');
-                  }
-              } else {
-                  mensajeAsignacion.textContent = data.message;
-                  resultadoModal.hide();
-                  asignacionModal.show();
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              mensajeAsignacion.textContent = 'Hubo un error al activar la entrada.';
-              resultadoModal.hide();
-              asignacionModal.show();
-          });
-      });
-  
-      // Animación de los modales
-      [resultadoModal, asignacionModal].forEach(modal => {
-          modal._element.addEventListener('show.bs.modal', function (event) {
-              this.classList.add('fade-scale');
-          });
-          modal._element.addEventListener('hide.bs.modal', function (event) {
-              this.classList.remove('fade-scale');
-          });
-      });
-  });
-  </script>
-  {% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const consultaForm = document.getElementById('consultaForm');
+    const infoUsuario = document.getElementById('infoUsuario');
+    const listaEncomiendas = document.getElementById('listaEncomiendas');
+    const activarEntradaContainer = document.getElementById('activarEntradaContainer');
+    const btnActivarEntrada = document.getElementById('btnActivarEntrada');
+    const resultadoModal = new bootstrap.Modal(document.getElementById('resultadoModal'));
+    const confirmacionModal = new bootstrap.Modal(document.getElementById('confirmacionModal'));
+    const asignacionModal = new bootstrap.Modal(document.getElementById('asignacionModal'));
+    const mensajeAsignacion = document.getElementById('mensajeAsignacion');
+    const btnConfirmarEntrada = document.getElementById('btnConfirmarEntrada');
+
+    consultaForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch('/consultar_encomienda', {
+            method: 'POST',
+            body: new FormData(consultaForm)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                infoUsuario.innerHTML = `<p>Usuario: ${data.usuario}</p>`;
+                if (data.encomiendas.length > 0) {
+                    listaEncomiendas.innerHTML = '<h6>Encomiendas:</h6><ul>' +
+                        data.encomiendas.map(e => `
+                            <li>
+                                <input type="checkbox" id="encomienda_${e.id}" name="encomiendas" value="${e.id}" 
+                                       ${e.entregada ? 'disabled checked' : ''}>
+                                <label for="encomienda_${e.id}">${e.descripcion} - Llegó: ${e.fecha}
+                                       ${e.entregada ? ' (Entregada)' : ''}</label>
+                            </li>`).join('') +
+                        '</ul>';
+                    activarEntradaContainer.style.display = 'block';
+                } else {
+                    listaEncomiendas.innerHTML = '<p>No hay encomiendas pendientes.</p>';
+                    activarEntradaContainer.style.display = 'none';
+                }
+            } else {
+                infoUsuario.innerHTML = `<p class="text-danger">${data.message}</p>`;
+                listaEncomiendas.innerHTML = '';
+                activarEntradaContainer.style.display = 'none';
+            }
+            resultadoModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            infoUsuario.innerHTML = '<p class="text-danger">Hubo un error al procesar la solicitud.</p>';
+            listaEncomiendas.innerHTML = '';
+            activarEntradaContainer.style.display = 'none';
+            resultadoModal.show();
+        })
+        .finally(() => {
+            consultaForm.reset();
+        });
+    });
+
+    btnActivarEntrada.addEventListener('click', function() {
+        const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
+        if (encomiendas_seleccionadas.length === 0) {
+            alert('Por favor, seleccione al menos una encomienda no entregada.');
+            return;
+        }
+        activarEntrada(encomiendas_seleccionadas);
+    });
+
+    function activarEntrada(encomiendas_seleccionadas) {
+        fetch('/activar_entrada', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.confirmar) {
+                    confirmacionModal.show();
+                } else {
+                    mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
+                    resultadoModal.hide();
+                    asignacionModal.show();
+                }
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Hubo un error al activar la entrada.');
+        });
+    }
+
+    btnConfirmarEntrada.addEventListener('click', function() {
+        const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
+        fetch('/confirmar_entrada', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mensajeAsignacion.textContent = data.message;
+                confirmacionModal.hide();
+                asignacionModal.show();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Hubo un error al confirmar la entrada.');
+        });
+    });
+});
+</script>
+{% endblock %}
