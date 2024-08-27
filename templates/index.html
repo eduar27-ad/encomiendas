@@ -102,123 +102,123 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const consultaForm = document.getElementById('consultaForm');
-    const infoUsuario = document.getElementById('infoUsuario');
-    const listaEncomiendas = document.getElementById('listaEncomiendas');
-    const activarEntradaContainer = document.getElementById('activarEntradaContainer');
-    const btnActivarEntrada = document.getElementById('btnActivarEntrada');
-    const resultadoModal = new bootstrap.Modal(document.getElementById('resultadoModal'));
-    const confirmacionModal = new bootstrap.Modal(document.getElementById('confirmacionModal'));
-    const asignacionModal = new bootstrap.Modal(document.getElementById('asignacionModal'));
-    const mensajeAsignacion = document.getElementById('mensajeAsignacion');
-    const btnConfirmarEntrada = document.getElementById('btnConfirmarEntrada');
-
-    consultaForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        fetch('/consultar_encomienda', {
-            method: 'POST',
-            body: new FormData(consultaForm)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                infoUsuario.innerHTML = `<p>Usuario: ${data.usuario}</p>`;
-                if (data.encomiendas.length > 0) {
-                    listaEncomiendas.innerHTML = '<h6>Encomiendas:</h6><ul>' +
-                        data.encomiendas.map(e => `
-                            <li>
-                                <input type="checkbox" id="encomienda_${e.id}" name="encomiendas" value="${e.id}" 
-                                       ${e.entregada ? 'disabled checked' : ''}>
-                                <label for="encomienda_${e.id}">${e.descripcion} - Llegó: ${e.fecha}
-                                       ${e.entregada ? ' (Entregada)' : ''}</label>
-                            </li>`).join('') +
-                        '</ul>';
-                    activarEntradaContainer.style.display = 'block';
-                } else {
-                    listaEncomiendas.innerHTML = '<p>No hay encomiendas pendientes.</p>';
-                    activarEntradaContainer.style.display = 'none';
-                }
-            } else {
-                infoUsuario.innerHTML = `<p class="text-danger">${data.message}</p>`;
-                listaEncomiendas.innerHTML = '';
-                activarEntradaContainer.style.display = 'none';
-            }
-            resultadoModal.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            infoUsuario.innerHTML = '<p class="text-danger">Hubo un error al procesar la solicitud.</p>';
+    document.addEventListener('DOMContentLoaded', function() {
+        const consultaForm = document.getElementById('consultaForm');
+        const infoUsuario = document.getElementById('infoUsuario');
+        const listaEncomiendas = document.getElementById('listaEncomiendas');
+        const activarEntradaContainer = document.getElementById('activarEntradaContainer');
+        const btnActivarEntrada = document.getElementById('btnActivarEntrada');
+        const resultadoModal = new bootstrap.Modal(document.getElementById('resultadoModal'));
+        const asignacionModal = new bootstrap.Modal(document.getElementById('asignacionModal'));
+        const mensajeAsignacion = document.getElementById('mensajeAsignacion');
+    
+        let garajeAsignado = null;
+    
+        consultaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            infoUsuario.innerHTML = '';
             listaEncomiendas.innerHTML = '';
             activarEntradaContainer.style.display = 'none';
-            resultadoModal.show();
-        })
-        .finally(() => {
-            consultaForm.reset();
-        });
-    });
-
-    btnActivarEntrada.addEventListener('click', function() {
-        const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
-        if (encomiendas_seleccionadas.length === 0) {
-            alert('Por favor, seleccione al menos una encomienda no entregada.');
-            return;
-        }
-        activarEntrada(encomiendas_seleccionadas);
-    });
-
-    function activarEntrada(encomiendas_seleccionadas) {
-        fetch('/activar_entrada', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (data.confirmar) {
-                    confirmacionModal.show();
+            garajeAsignado = null;
+    
+            fetch('/consultar_encomienda', {
+                method: 'POST',
+                body: new FormData(consultaForm)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    infoUsuario.innerHTML = `<p>Usuario: ${data.usuario}</p>`;
+                    if (data.encomiendas.length > 0) {
+                        const encomiendasPendientes = data.encomiendas.filter(e => !e.entregada);
+                        listaEncomiendas.innerHTML = '<h6>Encomiendas:</h6><ul>' +
+                            data.encomiendas.map(e => `
+                                <li>
+                                    <input type="checkbox" id="encomienda_${e.id}" name="encomiendas" value="${e.id}" 
+                                           ${e.entregada ? 'disabled checked' : ''}>
+                                    <label for="encomienda_${e.id}">${e.descripcion} - Llegó: ${e.fecha}
+                                           ${e.entregada ? ' (Entregada)' : ''}</label>
+                                </li>`).join('') +
+                            '</ul>';
+                        activarEntradaContainer.style.display = encomiendasPendientes.length > 0 ? 'block' : 'none';
+                        garajeAsignado = data.encomiendas.find(e => e.garaje_asignado)?.garaje_asignado;
+                        if (garajeAsignado) {
+                            btnActivarEntrada.textContent = 'Confirmar Entrega Adicional';
+                        } else {
+                            btnActivarEntrada.textContent = 'Activar Entrada';
+                        }
+                    } else {
+                        listaEncomiendas.innerHTML = '<p>No hay encomiendas pendientes.</p>';
+                        activarEntradaContainer.style.display = 'none';
+                    }
                 } else {
-                    mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
+                    infoUsuario.innerHTML = `<p class="text-danger">${data.message}</p>`;
+                }
+                resultadoModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                infoUsuario.innerHTML = '<p class="text-danger">Hubo un error al procesar la solicitud.</p>';
+                resultadoModal.show();
+            })
+            .finally(() => {
+                consultaForm.reset();
+            });
+        });
+    
+        btnActivarEntrada.addEventListener('click', function() {
+            const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
+            if (encomiendas_seleccionadas.length === 0) {
+                alert('Por favor, seleccione al menos una encomienda no entregada.');
+                return;
+            }
+            activarEntrada(encomiendas_seleccionadas);
+        });
+    
+        function activarEntrada(encomiendas_seleccionadas) {
+            fetch('/activar_entrada', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (garajeAsignado) {
+                        mensajeAsignacion.textContent = `Encomiendas adicionales registradas para entrega en el garaje ${garajeAsignado}.`;
+                    } else {
+                        mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
+                        garajeAsignado = data.garaje;
+                    }
                     resultadoModal.hide();
                     asignacionModal.show();
+                    
+                    // Deshabilitar los checkboxes de las encomiendas entregadas
+                    encomiendas_seleccionadas.forEach(id => {
+                        const checkbox = document.getElementById(`encomienda_${id}`);
+                        if (checkbox) {
+                            checkbox.disabled = true;
+                            checkbox.checked = true;
+                            checkbox.nextElementSibling.textContent += ' (Entregada)';
+                        }
+                    });
+    
+                    // Ocultar el botón si todas las encomiendas han sido entregadas
+                    const encomiendasPendientes = document.querySelectorAll('input[name="encomiendas"]:not(:disabled)');
+                    if (encomiendasPendientes.length === 0) {
+                        activarEntradaContainer.style.display = 'none';
+                    }
+                } else {
+                    alert(data.message);
                 }
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Hubo un error al activar la entrada.');
-        });
-    }
-
-    btnConfirmarEntrada.addEventListener('click', function() {
-        const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
-        fetch('/confirmar_entrada', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mensajeAsignacion.textContent = data.message;
-                confirmacionModal.hide();
-                asignacionModal.show();
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Hubo un error al confirmar la entrada.');
-        });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Hubo un error al activar la entrada.');
+            });
+        }
     });
-});
-</script>
+    </script>
 {% endblock %}
