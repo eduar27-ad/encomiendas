@@ -113,17 +113,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let garajeAsignado = null;
 
-    function limpiarFormularioYResultados() {
+    function limpiarFormulario() {
         consultaForm.reset();
-        infoUsuario.innerHTML = '';
-        listaEncomiendas.innerHTML = '';
-        activarEntradaContainer.style.display = 'none';
-        garajeAsignado = null;
     }
 
     consultaForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        limpiarFormularioYResultados();
         fetch('/consultar_encomienda', {
             method: 'POST',
             body: new FormData(this)
@@ -136,10 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 mostrarError(data.message);
             }
             resultadoModal.show();
+            limpiarFormulario();
         })
         .catch(error => {
             console.error('Error:', error);
             mostrarError('Error al procesar la solicitud.');
+            limpiarFormulario();
         });
     });
 
@@ -227,10 +224,17 @@ document.addEventListener('DOMContentLoaded', function() {
         infoUsuario.innerHTML = `<p class="text-danger">${mensaje}</p>`;
     }
 
-    // Añadir un event listener para limpiar el formulario cuando se cierre el modal
-    document.getElementById('resultadoModal').addEventListener('hidden.bs.modal', function () {
-        limpiarFormularioYResultados();
-    });
+    // Inicializar el estado de los estacionamientos
+    function inicializarEstadoEstacionamientos() {
+        document.querySelectorAll('.estacionamiento').forEach(estacionamiento => {
+            const estado = estacionamiento.classList.contains('ocupado') ? 'ocupado' :
+                           estacionamiento.classList.contains('fuera-de-servicio') ? 'fuera-de-servicio' : 'disponible';
+            actualizarEstadoEstacionamiento(estacionamiento.dataset.id, estado);
+        });
+    }
+
+    // Llamar a la función de inicialización al cargar la página
+    inicializarEstadoEstacionamientos();
 });
 </script>
 {% endblock %}
