@@ -1,10 +1,9 @@
+/* Estilos originales - NO MODIFICAR */
 :root {
     --primary-color: #007bff;
     --secondary-color: #6c757d;
     --background-color: #ffffff;
     --text-color: #333333;
-    --modal-background: #ffffff;
-    --modal-text: #333333;
     --estacionamiento-disponible: #28a745;
     --estacionamiento-ocupado: #ffc107;
     --estacionamiento-fuera-servicio: #dc3545;
@@ -21,47 +20,12 @@ body {
     --secondary-color: #545b62;
     --background-color: #333333;
     --text-color: #ffffff;
-    --modal-background: #444444;
-    --modal-text: #ffffff;
     --estacionamiento-disponible: #1e7e34;
     --estacionamiento-ocupado: #d39e00;
     --estacionamiento-fuera-servicio: #bd2130;
 }
 
-.modal-content {
-    background-color: var(--modal-background);
-    color: var(--modal-text);
-}
-
-.modal-header {
-    border-bottom-color: var(--secondary-color);
-}
-
-.modal-footer {
-    border-top-color: var(--secondary-color);
-}
-
-.navbar {
-    background-color: var(--background-color) !important;
-}
-
-.navbar-light .navbar-nav .nav-link,
-.navbar-light .navbar-brand {
-    color: var(--text-color) !important;
-}
-
-.theme-dark .navbar {
-    border-bottom: 1px solid var(--secondary-color);
-}
-
-.theme-toggle {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-}
-
-/* Estilos para estacionamientos */
+/* Estilos originales para los estacionamientos - NO MODIFICAR */
 .estacionamiento {
     width: 100%;
     height: 50px;
@@ -76,14 +40,109 @@ body {
 .ocupado { background-color: var(--estacionamiento-ocupado); }
 .fuera-de-servicio { background-color: var(--estacionamiento-fuera-servicio); }
 
-/* Animación del modal */
-.modal.fade-scale .modal-dialog {
-    transform: scale(0.7);
-    opacity: 0;
-    transition: all 0.3s;
+/* Nuevos estilos específicos para el dashboard */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px); /* Ajusta esto según la altura de tu navbar */
+    overflow: hidden;
 }
 
-.modal.fade-scale.show .modal-dialog {
-    transform: scale(1);
-    opacity: 1;
+.dashboard-header {
+    padding: 1rem;
+}
+
+.dashboard-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.dashboard-section {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.dashboard-parking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+}
+
+.dashboard-parking-spot {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Estilos para modales en tema oscuro */
+.theme-dark .modal-content {
+    background-color: #444444;
+    color: #ffffff;
+}
+
+.theme-dark .modal-header,
+.theme-dark .modal-footer {
+    border-color: #666666;
+}
+
+/* Asegurarse de que los textos sean visibles en ambos temas */
+.theme-dark h1, .theme-dark h2, .theme-dark h3, 
+.theme-dark h4, .theme-dark h5, .theme-dark h6,
+.theme-dark p, .theme-dark span, .theme-dark label {
+    color: #ffffff;
+}
+
+.card {
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.modal-content {
+    background-color: var(--modal-background);
+    color: var(--modal-text);
+}
+
+.modal-header, .modal-footer {
+    border-color: var(--secondary-color);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+}
+
+/* Estilos específicos para el mapa de estacionamientos en el dashboard */
+.parking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 5px;
+}
+
+.parking-spot {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.parking-spot:hover {
+    transform: scale(1.1);
+}
+
+/* Mantén los estilos de colores que ya tenías para .disponible, .ocupado, .fuera-de-servicio */
+
+/* Estilos para la leyenda */
+.badge {
+    display: inline-block;
+    padding: 0.5em;
+    margin-right: 0.5em;
+    margin-bottom: 0.5em;
 }
