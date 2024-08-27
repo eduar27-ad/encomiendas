@@ -25,7 +25,7 @@ def index():
     """Ruta principal que muestra el estado de los estacionamientos."""
     try:
         conn = get_db_connection()
-        estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
+        estacionamientos = conn.execute('SELECT id, estado FROM garajes').fetchall()
         conn.close()
         return render_template('index.html', estacionamientos=estacionamientos)
     except sqlite3.Error as e:
