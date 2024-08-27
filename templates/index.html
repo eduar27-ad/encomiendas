@@ -1,13 +1,12 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h1 class="text-center mb-4">Sistema de Gestión de Encomiendas</h1>
+<h1 class="mt-3 mb-4">Bienvenido al Sistema de Gestión de Encomiendas</h1>
 
-<h2 class="text-center mb-3">Estado de Estacionamientos</h2>
+<h2 class="mb-3">Estado de Estacionamientos</h2>
 <div id="estacionamientos" class="row justify-content-center mb-4">
     {% for estacionamiento in estacionamientos %}
-    <div class="col-2 m-2">
-        <div class="estacionamiento {{ estacionamiento.estado }} p-3 text-center text-white">
+    <div class="col-2 m-1">
+        <div class="estacionamiento {{ estacionamiento.estado }}">
             {{ estacionamiento.id }}
         </div>
     </div>
@@ -15,31 +14,22 @@
 </div>
 
 <!-- Leyenda de Estados -->
-<div class="row justify-content-center mb-5">
+<div class="row justify-content-center mb-4">
     <div class="col-auto">
-        <div class="d-flex align-items-center">
-            <div class="estacionamiento disponible me-2" style="width: 20px; height: 20px;"></div>
-            <span>Disponible</span>
-        </div>
+        <span class="badge bg-success">Disponible</span>
     </div>
     <div class="col-auto">
-        <div class="d-flex align-items-center">
-            <div class="estacionamiento ocupado me-2" style="width: 20px; height: 20px;"></div>
-            <span>Ocupado</span>
-        </div>
+        <span class="badge bg-warning text-dark">Ocupado</span>
     </div>
     <div class="col-auto">
-        <div class="d-flex align-items-center">
-            <div class="estacionamiento fuera-de-servicio me-2" style="width: 20px; height: 20px;"></div>
-            <span>Fuera de Servicio</span>
-        </div>
+        <span class="badge bg-danger">Fuera de Servicio</span>
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-6 offset-md-3">
-        <h3>Consultar Encomienda</h3>
-        <form id="consultaForm">
+<div class="row mt-4">
+    <div class="col-md-6">
+        <h3>Consultar Encomiendas</h3>
+        <form id="consultaForm" class="mt-3">
             <div class="mb-3">
                 <input type="text" class="form-control" name="identificacion" placeholder="Identificación del Usuario" required>
             </div>
@@ -49,94 +39,186 @@
             <button type="submit" class="btn btn-primary">Consultar</button>
         </form>
     </div>
-</div>
-
-<div id="resultadoConsulta" class="row mb-4" style="display: none;">
-    <div class="col-md-6 offset-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Resultado de la Consulta</h5>
-                <div id="infoUsuario"></div>
-                <div id="listaEncomiendas"></div>
-                <button id="btnEntrada" class="btn btn-success mt-3" style="display: none;">Activar Entrada</button>
-            </div>
-        </div>
+    <div class="col-md-6">
+        <h3>Nueva Encomienda</h3>
+        <p>Registra una nueva encomienda fácilmente.</p>
+        <a href="{{ url_for('encomienda') }}" class="btn btn-primary">Registrar Nueva Encomienda</a>
     </div>
 </div>
 
-<div id="alertaPersonalizada" class="modal fade" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Asignación de Estacionamiento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="mensajeAlerta"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
+<!-- Modal para mostrar resultados -->
+<div class="modal fade" id="resultadoModal" tabindex="-1" aria-labelledby="resultadoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultadoModalLabel">Resultado de la Consulta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="infoUsuario"></div>
+        <div id="listaEncomiendas"></div>
+        <div id="activarEntradaContainer" class="mt-3" style="display: none;">
+          <button id="btnActivarEntrada" class="btn btn-success">Activar Entrada</button>
         </div>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Modal para confirmación -->
+<div class="modal fade" id="confirmacionModal" tabindex="-1" aria-labelledby="confirmacionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmacionModalLabel">Confirmación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Este usuario ya está en un garaje recibiendo una entrega. ¿Desea recibir estas encomiendas adicionales en el mismo garaje?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmarEntrada">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para mostrar asignación de estacionamiento -->
+<div class="modal fade" id="asignacionModal" tabindex="-1" aria-labelledby="asignacionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="asignacionModalLabel">Asignación de Estacionamiento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="mensajeAsignacion"></p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.getElementById('consultaForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    fetch('/consultar_encomienda', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('resultadoConsulta').style.display = 'block';
-        if (data.success) {
-            document.getElementById('infoUsuario').innerHTML = `<p>Usuario: ${data.usuario}</p>`;
-            if (data.encomiendas.length > 0) {
-                let listaHtml = '<h6>Encomiendas pendientes:</h6><ul>';
-                data.encomiendas.forEach(enc => {
-                    listaHtml += `<li>${enc.descripcion} - Llegó: ${enc.fecha}</li>`;
-                });
-                listaHtml += '</ul>';
-                document.getElementById('listaEncomiendas').innerHTML = listaHtml;
-                document.getElementById('btnEntrada').style.display = 'block';
-            } else {
-                document.getElementById('listaEncomiendas').innerHTML = '<p>No hay encomiendas pendientes.</p>';
-                document.getElementById('btnEntrada').style.display = 'none';
-            }
-        } else {
-            document.getElementById('infoUsuario').innerHTML = `<p>${data.message}</p>`;
-            document.getElementById('listaEncomiendas').innerHTML = '';
-            document.getElementById('btnEntrada').style.display = 'none';
-        }
-    });
-});
-
-document.getElementById('btnEntrada').addEventListener('click', function() {
-    fetch('/activar_entrada', { method: 'POST' })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const estacionamientos = document.querySelectorAll('.estacionamiento');
-            estacionamientos.forEach(est => {
-                if (est.textContent.trim() === data.garaje) {
-                    est.classList.remove('disponible');
-                    est.classList.add('ocupado');
+    document.addEventListener('DOMContentLoaded', function() {
+        const consultaForm = document.getElementById('consultaForm');
+        const infoUsuario = document.getElementById('infoUsuario');
+        const listaEncomiendas = document.getElementById('listaEncomiendas');
+        const activarEntradaContainer = document.getElementById('activarEntradaContainer');
+        const btnActivarEntrada = document.getElementById('btnActivarEntrada');
+        const resultadoModal = new bootstrap.Modal(document.getElementById('resultadoModal'));
+        const asignacionModal = new bootstrap.Modal(document.getElementById('asignacionModal'));
+        const mensajeAsignacion = document.getElementById('mensajeAsignacion');
+    
+        let garajeAsignado = null;
+    
+        consultaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            infoUsuario.innerHTML = '';
+            listaEncomiendas.innerHTML = '';
+            activarEntradaContainer.style.display = 'none';
+            garajeAsignado = null;
+    
+            fetch('/consultar_encomienda', {
+                method: 'POST',
+                body: new FormData(consultaForm)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    infoUsuario.innerHTML = `<p>Usuario: ${data.usuario}</p>`;
+                    if (data.encomiendas.length > 0) {
+                        const encomiendasPendientes = data.encomiendas.filter(e => !e.entregada);
+                        listaEncomiendas.innerHTML = '<h6>Encomiendas:</h6><ul>' +
+                            data.encomiendas.map(e => `
+                                <li>
+                                    <input type="checkbox" id="encomienda_${e.id}" name="encomiendas" value="${e.id}" 
+                                           ${e.entregada ? 'disabled checked' : ''}>
+                                    <label for="encomienda_${e.id}">${e.descripcion} - Llegó: ${e.fecha}
+                                           ${e.entregada ? ' (Entregada)' : ''}</label>
+                                </li>`).join('') +
+                            '</ul>';
+                        activarEntradaContainer.style.display = encomiendasPendientes.length > 0 ? 'block' : 'none';
+                        garajeAsignado = data.encomiendas.find(e => e.garaje_asignado)?.garaje_asignado;
+                        if (garajeAsignado) {
+                            btnActivarEntrada.textContent = 'Confirmar Entrega Adicional';
+                        } else {
+                            btnActivarEntrada.textContent = 'Activar Entrada';
+                        }
+                    } else {
+                        listaEncomiendas.innerHTML = '<p>No hay encomiendas pendientes.</p>';
+                        activarEntradaContainer.style.display = 'none';
+                    }
+                } else {
+                    infoUsuario.innerHTML = `<p class="text-danger">${data.message}</p>`;
                 }
+                resultadoModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                infoUsuario.innerHTML = '<p class="text-danger">Hubo un error al procesar la solicitud.</p>';
+                resultadoModal.show();
+            })
+            .finally(() => {
+                consultaForm.reset();
             });
-
-            const mensajeAlerta = `Se ha asignado el estacionamiento ${data.garaje}.`;
-            document.getElementById('mensajeAlerta').textContent = mensajeAlerta;
-            const modal = new bootstrap.Modal(document.getElementById('alertaPersonalizada'));
-            modal.show();
-        } else {
-            alert(data.message);
+        });
+    
+        btnActivarEntrada.addEventListener('click', function() {
+            const encomiendas_seleccionadas = Array.from(document.querySelectorAll('input[name="encomiendas"]:checked:not(:disabled)')).map(cb => cb.value);
+            if (encomiendas_seleccionadas.length === 0) {
+                alert('Por favor, seleccione al menos una encomienda no entregada.');
+                return;
+            }
+            activarEntrada(encomiendas_seleccionadas);
+        });
+    
+        function activarEntrada(encomiendas_seleccionadas) {
+            fetch('/activar_entrada', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (garajeAsignado) {
+                        mensajeAsignacion.textContent = `Encomiendas adicionales registradas para entrega en el garaje ${garajeAsignado}.`;
+                    } else {
+                        mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
+                        garajeAsignado = data.garaje;
+                    }
+                    resultadoModal.hide();
+                    asignacionModal.show();
+                    
+                    // Deshabilitar los checkboxes de las encomiendas entregadas
+                    encomiendas_seleccionadas.forEach(id => {
+                        const checkbox = document.getElementById(`encomienda_${id}`);
+                        if (checkbox) {
+                            checkbox.disabled = true;
+                            checkbox.checked = true;
+                            checkbox.nextElementSibling.textContent += ' (Entregada)';
+                        }
+                    });
+    
+                    // Ocultar el botón si todas las encomiendas han sido entregadas
+                    const encomiendasPendientes = document.querySelectorAll('input[name="encomiendas"]:not(:disabled)');
+                    if (encomiendasPendientes.length === 0) {
+                        activarEntradaContainer.style.display = 'none';
+                    }
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Hubo un error al activar la entrada.');
+            });
         }
     });
-});
-</script>
+    </script>
 {% endblock %}
