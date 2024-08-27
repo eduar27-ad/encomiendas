@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const parkingSpots = document.querySelectorAll('.parking-spot');
     const parkingDetailModal = new bootstrap.Modal(document.getElementById('parkingDetailModal'));
-    const outOfServiceModal = new bootstrap.Modal(document.getElementById('outOfServiceModal'));
     const releaseBtn = document.getElementById('release-btn');
     const outOfServiceBtn = document.getElementById('out-of-service-btn');
     const confirmOutOfServiceBtn = document.getElementById('confirm-out-of-service');
@@ -14,25 +13,37 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Número de parking spots encontrados:", parkingSpots.length);
 
     parkingSpots.forEach(spot => {
+        console.log("Añadiendo event listener a spot:", spot.dataset.id);
         spot.addEventListener('click', function() {
+            console.log("Spot clicked:", this.dataset.id);
             currentSpotId = this.dataset.id;
-            console.log("Spot clicked:", currentSpotId);
-            showParkingDetails(currentSpotId);
+            showParkingDetails(this.dataset.id);
         });
     });
 
     function showParkingDetails(spotId) {
+        console.log("Intentando mostrar detalles para el estacionamiento:", spotId);
         fetch(`/api/parking-spot/${spotId}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log("Respuesta recibida:", response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log("Detalles del estacionamiento recibidos:", data);
                 updateModalWithParkingDetails(data);
                 parkingDetailModal.show();
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error al obtener detalles del estacionamiento:', error);
+                alert('Hubo un error al cargar los detalles del estacionamiento.');
+            });
     }
 
     function updateModalWithParkingDetails(spotDetails) {
+        console.log("Actualizando modal con detalles:", spotDetails);
         document.getElementById('parking-id').textContent = spotDetails.id;
         document.getElementById('parking-status').textContent = spotDetails.estado;
 
@@ -74,23 +85,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    releaseBtn.addEventListener('click', function() {
-        releaseParking(currentSpotId);
-    });
+    if (releaseBtn) {
+        releaseBtn.addEventListener('click', function() {
+            releaseParking(currentSpotId);
+        });
+    }
 
-    outOfServiceBtn.addEventListener('click', function() {
-        if (outOfServiceBtn.textContent === 'Volver a Servicio') {
-            returnToService(currentSpotId);
-        } else {
-            outOfServiceModal.show();
-        }
-    });
+    if (outOfServiceBtn) {
+        outOfServiceBtn.addEventListener('click', function() {
+            if (outOfServiceBtn.textContent === 'Volver a Servicio') {
+                returnToService(currentSpotId);
+            } else {
+                const outOfServiceModal = new bootstrap.Modal(document.getElementById('outOfServiceModal'));
+                outOfServiceModal.show();
+            }
+        });
+    }
 
-    confirmOutOfServiceBtn.addEventListener('click', function() {
-        const reason = document.getElementById('out-of-service-reason-select').value;
-        markOutOfService(currentSpotId, reason);
-        outOfServiceModal.hide();
-    });
+    if (confirmOutOfServiceBtn) {
+        confirmOutOfServiceBtn.addEventListener('click', function() {
+            const reason = document.getElementById('out-of-service-reason-select').value;
+            markOutOfService(currentSpotId, reason);
+            const outOfServiceModal = bootstrap.Modal.getInstance(document.getElementById('outOfServiceModal'));
+            outOfServiceModal.hide();
+        });
+    }
 
     function releaseParking(spotId) {
         fetch(`/api/release-parking/${spotId}`, { method: 'POST' })

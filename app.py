@@ -154,13 +154,16 @@ def dashboard():
     except sqlite3.Error as e:
         app.logger.error(f"Error en dashboard: {e}")
         return "Error al acceder a la base de datos", 500
-    
+        
+
 @app.route('/api/parking-spot/<spot_id>')
 def get_parking_spot_details(spot_id):
+    app.logger.info(f"Solicitando detalles para el estacionamiento: {spot_id}")
     try:
         conn = get_db_connection()
         spot = conn.execute('SELECT * FROM garajes WHERE id = ?', (spot_id,)).fetchone()
         if spot:
+            app.logger.info(f"Estacionamiento encontrado: {spot}")
             # Obtener información adicional si está ocupado
             if spot['estado'] == 'ocupado':
                 asignacion = conn.execute('''
@@ -198,35 +201,12 @@ def get_parking_spot_details(spot_id):
                 })
         else:
             conn.close()
+            app.logger.warning(f"Estacionamiento no encontrado: {spot_id}")
             return jsonify({'error': 'Estacionamiento no encontrado'}), 404
     except sqlite3.Error as e:
         app.logger.error(f"Error al obtener detalles del estacionamiento: {e}")
         return jsonify({'error': 'Error en la base de datos'}), 500
-
-@app.route('/api/release-parking/<spot_id>', methods=['POST'])
-def release_parking(spot_id):
-    try:
-        conn = get_db_connection()
-        # Verificar si el estacionamiento está ocupado
-        spot = conn.execute('SELECT estado FROM garajes WHERE id = ?', (spot_id,)).fetchone()
-        if spot and spot['estado'] == 'ocupado':
-            # Liberar el estacionamiento
-            conn.execute('UPDATE garajes SET estado = "disponible" WHERE id = ?', (spot_id,))
-            # Actualizar la asignación
-            conn.execute('''
-                UPDATE asignaciones 
-                SET fecha_salida = ? 
-                WHERE garaje_id = ? AND fecha_salida IS NULL
-            ''', (datetime.now(), spot_id))
-            conn.commit()
-            conn.close()
-            return jsonify({'success': True, 'message': 'Estacionamiento liberado exitosamente'})
-        else:
-            conn.close()
-            return jsonify({'success': False, 'message': 'El estacionamiento no está ocupado'}), 400
-    except sqlite3.Error as e:
-        app.logger.error(f"Error al liberar estacionamiento: {e}")
-        return jsonify({'success': False, 'message': 'Error en la base de datos'}), 500
+    
 
 @app.route('/api/mark-out-of-service/<spot_id>', methods=['POST'])
 def mark_out_of_service(spot_id):
