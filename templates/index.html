@@ -175,50 +175,50 @@
             activarEntrada(encomiendas_seleccionadas);
         });
     
-        function activarEntrada(encomiendas_seleccionadas) {
-            fetch('/activar_entrada', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (garajeAsignado) {
-                        mensajeAsignacion.textContent = `Encomiendas adicionales registradas para entrega en el garaje ${garajeAsignado}.`;
-                    } else {
-                        mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
-                        garajeAsignado = data.garaje;
-                    }
-                    resultadoModal.hide();
-                    asignacionModal.show();
-                    
-                    // Deshabilitar los checkboxes de las encomiendas entregadas
-                    encomiendas_seleccionadas.forEach(id => {
-                        const checkbox = document.getElementById(`encomienda_${id}`);
-                        if (checkbox) {
-                            checkbox.disabled = true;
-                            checkbox.checked = true;
-                            checkbox.nextElementSibling.textContent += ' (Entregada)';
-                        }
-                    });
-    
-                    // Ocultar el botón si todas las encomiendas han sido entregadas
-                    const encomiendasPendientes = document.querySelectorAll('input[name="encomiendas"]:not(:disabled)');
-                    if (encomiendasPendientes.length === 0) {
-                        activarEntradaContainer.style.display = 'none';
-                    }
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Hubo un error al activar la entrada.');
-            });
+        function activarEntrada(encomiendas) {
+    fetch('/activar_entrada', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({encomiendas: encomiendas})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar la interfaz
+            const estacionamiento = document.querySelector(`.estacionamiento[data-id="${data.garaje}"]`);
+            if (estacionamiento) {
+                estacionamiento.classList.remove('disponible', 'ocupado', 'fuera-de-servicio');
+                estacionamiento.classList.add('ocupado');
+            }
+            
+            // Mostrar mensaje de éxito
+            document.getElementById('mensajeAlerta').textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
+            const modal = new bootstrap.Modal(document.getElementById('alertaPersonalizada'));
+            modal.show();
+            
+            // Cerrar el modal de resultado y limpiar la selección
+            bootstrap.Modal.getInstance(document.getElementById('resultadoModal')).hide();
+            limpiarSeleccion();
+        } else {
+            alert(data.message);
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Hubo un error al procesar la solicitud.');
+    });
+}
+
+// Añade esta función para limpiar la selección después de una asignación exitosa
+function limpiarSeleccion() {
+    document.getElementById('infoUsuario').innerHTML = '';
+    document.getElementById('listaEncomiendas').innerHTML = '';
+    document.getElementById('activarEntradaContainer').style.display = 'none';
+    // Limpiar cualquier otro estado relevante
+}
+
     });
     </script>
 {% endblock %}

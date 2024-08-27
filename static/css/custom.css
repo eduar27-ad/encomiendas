@@ -34,13 +34,33 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-color);
 }
 
+/* Estilos para el modal en tema claro */
 .modal-content {
-    background-color: var(--modal-background);
-    color: var(--modal-text);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-color);
 }
 
-.modal-header, .modal-footer {
-    border-color: var(--secondary-color);
+/* Estilos para el modal en tema oscuro */
+.theme-dark .modal-content {
+    background-color: #444444;
+    color: #ffffff;
+    border: 1px solid #666666;
+}
+
+/* Asegurarse de que los textos sean visibles en ambos temas */
+.modal-title, .modal-body, .modal-footer {
+    color: inherit;
+}
+
+/* Ajustar el fondo del modal para ambos temas */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Aumentar la opacidad del fondo del modal si es necesario */
+.modal-backdrop.show {
+    opacity: 0.7;
 }
 
 /* Estilos originales para los estacionamientos - NO MODIFICAR */
@@ -140,16 +160,6 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 5px;
 }
 
-/* Estilos para modales en tema oscuro */
-.theme-dark .modal-content {
-    background-color: #444444;
-    color: #ffffff;
-}
-
-.theme-dark .modal-header, 
-.theme-dark .modal-footer {
-    border-color: #666666;
-}
 
 /* Asegurarse de que los textos sean visibles en ambos temas */
 .theme-dark h1, .theme-dark h2, .theme-dark h3, 
