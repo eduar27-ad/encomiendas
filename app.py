@@ -67,6 +67,7 @@ def consultar_encomienda():
     except sqlite3.Error as e:
         conn.close()
         return jsonify({'success': False, 'message': f'Error en la base de datos: {str(e)}'})
+    
 @app.route('/activar_entrada', methods=['POST'])
 def activar_entrada():
     data = request.json
@@ -144,13 +145,12 @@ def confirmar_entrada():
 
 @app.route('/dashboard')
 def dashboard():
-    """Muestra el dashboard con el estado de los garajes y alertas recientes."""
     try:
         conn = get_db_connection()
-        garajes = conn.execute('SELECT * FROM garajes').fetchall()
+        estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
         alertas = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
         conn.close()
-        return render_template('dashboard.html', garajes=garajes, alertas=alertas)
+        return render_template('dashboard.html', estacionamientos=estacionamientos, alertas=alertas)
     except sqlite3.Error as e:
         app.logger.error(f"Error en dashboard: {e}")
         return "Error al acceder a la base de datos", 500

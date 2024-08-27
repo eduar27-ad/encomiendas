@@ -9,12 +9,6 @@
     --estacionamiento-fuera-servicio: #dc3545;
 }
 
-body {
-    background-color: var(--background-color);
-    color: var(--text-color);
-    transition: background-color 0.3s, color 0.3s;
-}
-
 .theme-dark {
     --primary-color: #0056b3;
     --secondary-color: #545b62;
@@ -23,6 +17,30 @@ body {
     --estacionamiento-disponible: #1e7e34;
     --estacionamiento-ocupado: #d39e00;
     --estacionamiento-fuera-servicio: #bd2130;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+}
+
+.card {
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.modal-content {
+    background-color: var(--modal-background);
+    color: var(--modal-text);
+}
+
+.modal-header, .modal-footer {
+    border-color: var(--secondary-color);
 }
 
 /* Estilos originales para los estacionamientos - NO MODIFICAR */
@@ -79,65 +97,34 @@ body {
     cursor: pointer;
 }
 
-/* Estilos para modales en tema oscuro */
-.theme-dark .modal-content {
-    background-color: #444444;
-    color: #ffffff;
-}
-
-.theme-dark .modal-header,
-.theme-dark .modal-footer {
-    border-color: #666666;
-}
-
-/* Asegurarse de que los textos sean visibles en ambos temas */
-.theme-dark h1, .theme-dark h2, .theme-dark h3, 
-.theme-dark h4, .theme-dark h5, .theme-dark h6,
-.theme-dark p, .theme-dark span, .theme-dark label {
-    color: #ffffff;
-}
-
-.card {
-    background-color: var(--card-background);
-    color: var(--text-color);
-}
-
-.modal-content {
-    background-color: var(--modal-background);
-    color: var(--modal-text);
-}
-
-.modal-header, .modal-footer {
-    border-color: var(--secondary-color);
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: var(--text-color);
-}
-
 /* Estilos específicos para el mapa de estacionamientos en el dashboard */
 .parking-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 5px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 10px;
 }
 
 .parking-spot {
-    aspect-ratio: 1;
+    aspect-ratio: 3 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
     font-size: 0.8em;
+    color: white;
     cursor: pointer;
     transition: transform 0.2s;
+    border-radius: 5px;
 }
 
 .parking-spot:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
-/* Mantén los estilos de colores que ya tenías para .disponible, .ocupado, .fuera-de-servicio */
+.parking-spot.disponible { background-color: var(--estacionamiento-disponible); }
+.parking-spot.ocupado { background-color: var(--estacionamiento-ocupado); }
+.parking-spot.fuera-de-servicio { background-color: var(--estacionamiento-fuera-servicio); }
 
 /* Estilos para la leyenda */
 .badge {
@@ -145,4 +132,28 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0.5em;
     margin-right: 0.5em;
     margin-bottom: 0.5em;
+}
+
+.legend .badge {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 5px;
+}
+
+/* Estilos para modales en tema oscuro */
+.theme-dark .modal-content {
+    background-color: #444444;
+    color: #ffffff;
+}
+
+.theme-dark .modal-header, 
+.theme-dark .modal-footer {
+    border-color: #666666;
+}
+
+/* Asegurarse de que los textos sean visibles en ambos temas */
+.theme-dark h1, .theme-dark h2, .theme-dark h3, 
+.theme-dark h4, .theme-dark h5, .theme-dark h6, 
+.theme-dark p, .theme-dark span, .theme-dark label {
+    color: #ffffff;
 }
