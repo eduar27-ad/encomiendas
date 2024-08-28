@@ -35,7 +35,7 @@ def consultar_encomienda():
         return jsonify({
             'success': True,
             'usuario': usuario['username'],
-            'encomiendas': [{'descripcion': e['descripcion'], 'fecha': e['fecha']} for e in encomiendas]
+            'encomiendas': [{'id': e['id'], 'descripcion': e['descripcion'], 'fecha': e['fecha']} for e in encomiendas]
         })
     conn.close()
     return jsonify({'success': False, 'message': 'Usuario no encontrado o clave incorrecta'})
@@ -43,16 +43,26 @@ def consultar_encomienda():
 @app.route('/activar_entrada', methods=['POST'])
 def activar_entrada():
     """Asigna un estacionamiento disponible aleatoriamente."""
+    encomienda_id = request.form.get('encomienda_id')
     conn = get_db_connection()
     garajes_disponibles = conn.execute('SELECT id FROM garajes WHERE estado = "disponible"').fetchall()
     if garajes_disponibles:
         garaje_asignado = random.choice(garajes_disponibles)
         conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_asignado['id'],))
+        conn.execute('UPDATE encomiendas SET fecha_entrega = ? WHERE id = ?', (datetime.now(), encomienda_id))
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'garaje': garaje_asignado['id']})
     conn.close()
     return jsonify({'success': False, 'message': 'No hay garajes disponibles'})
+
+@app.route('/get_notificaciones')
+def get_notificaciones():
+    """Retorna las últimas notificaciones."""
+    conn = get_db_connection()
+    notificaciones = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
+    conn.close()
+    return jsonify([{'mensaje': n['mensaje'], 'fecha': n['fecha']} for n in notificaciones])
 
 @app.route('/dashboard')
 def dashboard():
