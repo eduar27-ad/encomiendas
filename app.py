@@ -22,46 +22,15 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    """Ruta principal que muestra el estado detallado de los estacionamientos."""
+    """Ruta principal que muestra el estado de los estacionamientos."""
     try:
         conn = get_db_connection()
-        estacionamientos = conn.execute('''
-            SELECT g.id, g.estado, 
-                   CASE WHEN a.id IS NOT NULL THEN u.username ELSE NULL END as usuario_actual
-            FROM garajes g
-            LEFT JOIN asignaciones a ON g.id = a.garaje_id AND a.fecha_salida IS NULL
-            LEFT JOIN usuarios u ON a.usuario_id = u.id
-        ''').fetchall()
+        estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
         conn.close()
         return render_template('index.html', estacionamientos=estacionamientos)
     except sqlite3.Error as e:
         app.logger.error(f"Error al consultar la tabla garajes: {e}")
         return "Error al acceder a la base de datos", 500
-
-@app.route('/api/estado-estacionamientos')
-def estado_estacionamientos():
-    try:
-        conn = get_db_connection()
-        estacionamientos = conn.execute('''
-            SELECT g.id, g.estado, 
-                   CASE WHEN a.id IS NOT NULL THEN u.username ELSE NULL END as usuario_actual
-            FROM garajes g
-            LEFT JOIN asignaciones a ON g.id = a.garaje_id AND a.fecha_salida IS NULL
-            LEFT JOIN usuarios u ON a.usuario_id = u.id
-        ''').fetchall()
-        conn.close()
-        
-        resultado = {
-            'estacionamientos': [
-                {'id': e['id'], 'estado': e['estado'], 'usuario_actual': e['usuario_actual']}
-                for e in estacionamientos
-            ]
-        }
-        app.logger.info(f"Estado de estacionamientos enviado: {resultado}")
-        return jsonify(resultado)
-    except sqlite3.Error as e:
-        app.logger.error(f"Error al consultar el estado de los estacionamientos: {e}")
-        return jsonify({'error': 'Error en la base de datos'}), 500
 
 @app.route('/consultar_encomienda', methods=['POST'])
 def consultar_encomienda():
@@ -98,3 +67,140 @@ def consultar_encomienda():
     except sqlite3.Error as e:
         conn.close()
         return jsonify({'success': False, 'message': f'Error en la base de datos: {str(e)}'})
+    
+@app.route('/activar_entrada', methods=['POST'])
+def activar_entrada():
+    data = request.json
+    encomiendas_ids = data.get('encomiendas', [])
+    
+    if not encomiendas_ids:
+        return jsonify({'success': False, 'message': 'No se seleccionaron encomiendas'})
+
+    conn = get_db_connection()
+    
+    try:
+        # Obtener el usuario_id y verificar si ya tiene un estacionamiento asignado
+        usuario_id = conn.execute('SELECT destinatario_id FROM encomiendas WHERE id = ?', (encomiendas_ids[0],)).fetchone()['destinatario_id']
+        estacionamiento_asignado = conn.execute('SELECT garaje_id FROM asignaciones WHERE usuario_id = ? AND fecha_salida IS NULL', (usuario_id,)).fetchone()
+        
+        if estacionamiento_asignado:
+            # Si ya tiene un estacionamiento asignado, usamos ese
+            garaje_id = estacionamiento_asignado['garaje_id']
+        else:
+            # Si no tiene, asignamos uno nuevo
+            garajes_disponibles = conn.execute('SELECT id FROM garajes WHERE estado = "disponible"').fetchall()
+            if not garajes_disponibles:
+                return jsonify({'success': False, 'message': 'No hay garajes disponibles'})
+            
+            garaje_asignado = random.choice(garajes_disponibles)
+            garaje_id = garaje_asignado['id']
+            
+            # Marcar el garaje como ocupado
+            conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_id,))
+            
+            # Registrar la nueva asignación
+            conn.execute('INSERT INTO asignaciones (usuario_id, garaje_id, fecha_entrada) VALUES (?, ?, ?)',
+                         (usuario_id, garaje_id, datetime.now()))
+
+        # Marcar las encomiendas seleccionadas como entregadas
+        for encomienda_id in encomiendas_ids:
+            conn.execute('UPDATE encomiendas SET fecha_entrega = ? WHERE id = ?', (datetime.now(), encomienda_id))
+
+        # Actualizar la fecha de salida de la asignación si todas las encomiendas han sido entregadas
+        encomiendas_pendientes = conn.execute('SELECT COUNT(*) FROM encomiendas WHERE destinatario_id = ? AND fecha_entrega IS NULL', (usuario_id,)).fetchone()[0]
+        if encomiendas_pendientes == 0:
+            conn.execute('UPDATE asignaciones SET fecha_salida = ? WHERE usuario_id = ? AND fecha_salida IS NULL', (datetime.now(), usuario_id))
+            conn.execute('UPDATE garajes SET estado = "disponible" WHERE id = ?', (garaje_id,))
+
+        conn.commit()
+        return jsonify({'success': True, 'garaje': garaje_id})
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'Error en la base de datos: {str(e)}'})
+    finally:
+        conn.close()
+
+@app.route('/confirmar_entrada', methods=['POST'])
+def confirmar_entrada():
+    """Confirma la entrega de encomiendas adicionales en un garaje ya asignado."""
+    try:
+        data = request.json
+        encomiendas_ids = data.get('encomiendas', [])
+        
+        if not encomiendas_ids:
+            return jsonify({'success': False, 'message': 'No se seleccionaron encomiendas'})
+
+        conn = get_db_connection()
+        
+        # Marcar las encomiendas seleccionadas como entregadas
+        for encomienda_id in encomiendas_ids:
+            conn.execute('UPDATE encomiendas SET fecha_entrega = ? WHERE id = ?', (datetime.now(), encomienda_id))
+
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Encomiendas adicionales registradas para entrega'})
+    except sqlite3.Error as e:
+        app.logger.error(f"Error en confirmar_entrada: {e}")
+        return jsonify({'success': False, 'message': 'Error al procesar la confirmación'})
+
+@app.route('/dashboard')
+def dashboard():
+    try:
+        conn = get_db_connection()
+        estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
+        alertas = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
+        conn.close()
+        return render_template('dashboard.html', estacionamientos=estacionamientos, alertas=alertas)
+    except sqlite3.Error as e:
+        app.logger.error(f"Error en dashboard: {e}")
+        return "Error al acceder a la base de datos", 500
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Maneja el registro de nuevos usuarios."""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        identificacion = request.form['identificacion']
+        clave_dinamica = request.form['clave_dinamica']
+        conn = get_db_connection()
+        try:
+            conn.execute('INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES (?, ?, ?, ?)',
+                         (username, password, identificacion, clave_dinamica))
+            conn.commit()
+            flash('Usuario registrado exitosamente')
+            return redirect(url_for('index'))
+        except sqlite3.IntegrityError:
+            flash('Error: El nombre de usuario o identificación ya existe')
+        except sqlite3.Error as e:
+            app.logger.error(f"Error en register: {e}")
+            flash('Error al registrar el usuario')
+        finally:
+            conn.close()
+    return render_template('register.html')
+
+@app.route('/encomienda', methods=['GET', 'POST'])
+def encomienda():
+    """Maneja el registro de nuevas encomiendas."""
+    if request.method == 'POST':
+        destinatario_id = request.form['destinatario_id']
+        descripcion = request.form['descripcion']
+        conn = get_db_connection()
+        try:
+            conn.execute('INSERT INTO encomiendas (destinatario_id, descripcion) VALUES (?, ?)',
+                         (destinatario_id, descripcion))
+            conn.commit()
+            flash('Encomienda registrada exitosamente')
+            return redirect(url_for('dashboard'))
+        except sqlite3.Error as e:
+            app.logger.error(f"Error al registrar la encomienda: {e}")
+            flash(f'Error al registrar la encomienda: {str(e)}')
+        finally:
+            conn.close()
+    conn = get_db_connection()
+    usuarios = conn.execute('SELECT id, username FROM usuarios').fetchall()
+    conn.close()
+    return render_template('encomienda.html', usuarios=usuarios)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
