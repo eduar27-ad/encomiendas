@@ -1,144 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="mt-3 mb-4">Dashboard</h1>
+<h1 class="text-center mb-4">Dashboard</h1>
 
-<h2 class="mb-3">Estacionamientos</h2>
-<div class="row mb-4">
-    <div class="col-md-9">
-        <div id="estacionamientos" class="parking-grid">
-            {% for estacionamiento in estacionamientos %}
-            <div class="parking-spot {{ estacionamiento.estado }}" data-id="{{ estacionamiento.id }}">
-                {{ estacionamiento.id }}
+<div class="row">
+    <div class="col-md-6">
+        <h2>Estado de los Garajes</h2>
+        <div class="row">
+            {% for garaje in garajes %}
+            <div class="col-3 mb-3">
+                <div class="card">
+                    <div class="card-body text-center {{ garaje['estado'] }}">
+                        <h5 class="card-title">{{ garaje['id'] }}</h5>
+                        <p class="card-text">{{ garaje['estado'] }}</p>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
     </div>
-    <div class="col-md-3">
-        <!-- Leyenda de Estados -->
-        <div class="legend">
-            <div class="mb-2"><span class="badge bg-success">Disponible</span></div>
-            <div class="mb-2"><span class="badge bg-warning text-dark">Ocupado</span></div>
-            <div class="mb-2"><span class="badge bg-danger">Fuera de Servicio</span></div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
+    
     <div class="col-md-6">
-        <h3>Estadísticas Generales</h3>
-        <div class="card">
-            <div class="card-body">
-                <p>Estacionamientos ocupados: <span id="occupied-count">0</span></p>
-                <p>Estacionamientos disponibles: <span id="available-count">0</span></p>
-                <p>Estacionamientos fuera de servicio: <span id="out-of-service-count">0</span></p>
-                <p>Entregas del día: <span id="daily-deliveries">0</span></p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <h3>Gráfico de Ocupación</h3>
-        <div class="card">
-            <div class="card-body">
-                <canvas id="occupationChart"></canvas>
-            </div>
-        </div>
+        <h2>Últimas Alertas</h2>
+        <ul class="list-group">
+            {% for alerta in alertas %}
+            <li class="list-group-item">
+                <strong>{{ alerta['fecha'] }}</strong>: {{ alerta['mensaje'] }}
+            </li>
+            {% endfor %}
+        </ul>
     </div>
 </div>
-
-<div class="row mt-4">
-    <div class="col-md-6">
-        <h3>Últimas Alertas</h3>
-        <div class="card">
-            <div class="card-body">
-                <ul id="alertList" class="list-group">
-                    {% for alerta in alertas %}
-                    <li class="list-group-item">{{ alerta.mensaje }} - {{ alerta.fecha }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <h3>Acciones Rápidas</h3>
-        <div class="card">
-            <div class="card-body">
-                <button class="btn btn-primary mb-2" id="refreshButton">Actualizar Datos</button>
-                <button class="btn btn-warning mb-2" id="generateReportButton">Generar Reporte</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para información detallada del estacionamiento -->
-<div class="modal fade" id="parkingDetailModal" tabindex="-1" aria-labelledby="parkingDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="parkingDetailModalLabel">Detalles del Estacionamiento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>ID del Estacionamiento:</strong> <span id="parking-id"></span></p>
-                <p><strong>Estado:</strong> <span id="parking-status"></span></p>
-                <div id="occupied-info" style="display: none;">
-                    <p><strong>Usuario actual:</strong> <span id="current-user"></span></p>
-                    <p><strong>Hora de entrada:</strong> <span id="entry-time"></span></p>
-                    <p><strong>Duración:</strong> <span id="duration"></span></p>
-                </div>
-                <div id="out-of-service-info" style="display: none;">
-                    <p><strong>Razón:</strong> <span id="out-of-service-reason"></span></p>
-                </div>
-                <div id="last-use-info">
-                    <p><strong>Último uso:</strong> <span id="last-use"></span></p>
-                    <p><strong>Duración última ocupación:</strong> <span id="last-duration"></span></p>
-                    <p><strong>Usuario anterior:</strong> <span id="last-user"></span></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" id="release-btn" style="display: none;">Liberar Estacionamiento</button>
-                <button type="button" class="btn btn-warning" id="out-of-service-btn">Fuera de Servicio</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para marcar como fuera de servicio -->
-<div class="modal fade" id="outOfServiceModal" tabindex="-1" aria-labelledby="outOfServiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="outOfServiceModalLabel">Marcar Fuera de Servicio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="out-of-service-form">
-                    <div class="mb-3">
-                        <label for="out-of-service-reason" class="form-label">Razón:</label>
-                        <select class="form-select" id="out-of-service-reason-select">
-                            <option value="">Seleccione una razón</option>
-                            <option value="Mantenimiento">Mantenimiento</option>
-                            <option value="Limpieza">Limpieza</option>
-                            <option value="Reparación">Reparación</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="other-reason-container" style="display: none;">
-                        <label for="other-reason" class="form-label">Especifique la razón:</label>
-                        <input type="text" class="form-control" id="other-reason">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirm-out-of-service">Confirmar</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
