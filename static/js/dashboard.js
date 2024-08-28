@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showParkingDetails(this.dataset.id);
         });
     });
+    
 
     function showParkingDetails(spotId) {
         console.log("Intentando mostrar detalles para el estacionamiento:", spotId);
@@ -112,18 +113,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function releaseParking(spotId) {
-        fetch(`/api/release-parking/${spotId}`, { method: 'POST' })
-            .then(response => response.json())
+        console.log(`Intentando liberar estacionamiento: ${spotId}`);
+        fetch(`/api/release-parking/${spotId}`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => {
+                console.log(`Respuesta recibida: ${response.status} ${response.statusText}`);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Datos recibidos:', data);
                 if (data.success) {
+                    alert(data.message);
                     updateParkingSpotStatus(spotId, 'disponible');
                     parkingDetailModal.hide();
                     updateStatistics();
+                    actualizarEstadoEstacionamientos();
                 } else {
                     alert(data.message);
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error detallado:', error);
+                alert(`Error al liberar el estacionamiento: ${error.message}`);
+            });
     }
 
     function markOutOfService(spotId, reason) {
@@ -266,6 +287,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar entregas del día
         document.getElementById('daily-deliveries').textContent = data.entregasDelDia;
     }
+
+    function actualizarEstadoEstacionamientos() {
+        fetch('/api/estado-estacionamientos')
+            .then(response => response.json())
+            .then(data => {
+                data.estacionamientos.forEach(est => {
+                    updateParkingSpotStatus(est.id, est.estado);
+                });
+                updateStatistics();
+                updateOccupationChart();
+            })
+            .catch(error => console.error('Error al actualizar estacionamientos:', error));
+    }
+
+    // Llamar a esta función periódicamente
+    setInterval(actualizarEstadoEstacionamientos, 30000);
+
+    // Y también llamarla inmediatamente al cargar la página
+    actualizarEstadoEstacionamientos();
 
     console.log("Configuración del dashboard completada");
 });

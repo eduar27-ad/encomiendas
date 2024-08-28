@@ -131,12 +131,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 mostrarError(data.message);
             }
             resultadoModal.show();
-            limpiarFormulario();
         })
         .catch(error => {
             console.error('Error:', error);
             mostrarError('Error al procesar la solicitud.');
-            limpiarFormulario();
         });
     });
 
@@ -186,11 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     mensajeAsignacion.textContent = `Se ha asignado el estacionamiento ${data.garaje}.`;
                     garajeAsignado = data.garaje;
-                    actualizarEstadoEstacionamiento(data.garaje, 'ocupado');
                 }
                 resultadoModal.hide();
                 asignacionModal.show();
                 actualizarEstadoEncomiendas(encomiendas_seleccionadas);
+                actualizarEstadoEstacionamientos(); // Actualizar después de la asignación
             } else {
                 mostrarError(data.message);
             }
@@ -201,12 +199,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function actualizarEstadoEstacionamiento(id, estado) {
-        const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
-        if (estacionamiento) {
-            estacionamiento.classList.remove('disponible', 'ocupado', 'fuera-de-servicio');
-            estacionamiento.classList.add(estado);
-        }
+    function actualizarEstacionamientos() {
+        fetch('/api/estado-estacionamientos')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Estado de estacionamientos recibido:', data); // Para depuración
+                data.estacionamientos.forEach(est => {
+                    actualizarEstadoEstacionamiento(est.id, est.estado, est.usuario_actual);
+                });
+            })
+            .catch(error => console.error('Error al actualizar estacionamientos:', error));
+    }
+
+    function actualizarEstadoEstacionamientos() {
+        fetch('/api/estado-estacionamientos')
+            .then(response => response.json())
+            .then(data => {
+                data.estacionamientos.forEach(est => {
+                    const estacionamiento = document.querySelector(`.estacionamiento[data-id="${est.id}"]`);
+                    if (estacionamiento) {
+                        estacionamiento.classList.remove('disponible', 'ocupado', 'fuera-de-servicio');
+                        estacionamiento.classList.add(est.estado);
+                    }
+                });
+            })
+            .catch(error => console.error('Error al actualizar estacionamientos:', error));
     }
 
     function actualizarEstadoEncomiendas(encomiendas_seleccionadas) {
@@ -224,17 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
         infoUsuario.innerHTML = `<p class="text-danger">${mensaje}</p>`;
     }
 
-    // Inicializar el estado de los estacionamientos
-    function inicializarEstadoEstacionamientos() {
-        document.querySelectorAll('.estacionamiento').forEach(estacionamiento => {
-            const estado = estacionamiento.classList.contains('ocupado') ? 'ocupado' :
-                           estacionamiento.classList.contains('fuera-de-servicio') ? 'fuera-de-servicio' : 'disponible';
-            actualizarEstadoEstacionamiento(estacionamiento.dataset.id, estado);
-        });
-    }
 
-    // Llamar a la función de inicialización al cargar la página
-    inicializarEstadoEstacionamientos();
+// Actualizar estacionamientos cada 10 segundos (reducido para pruebas)
+setInterval(actualizarEstacionamientos, 10000);
+
+// Actualizar estacionamientos inmediatamente al cargar la página
+actualizarEstacionamientos();
 });
 </script>
 {% endblock %}
