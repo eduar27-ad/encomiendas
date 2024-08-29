@@ -3,6 +3,14 @@
 
 <h1 class="text-center mb-4">Dashboard</h1>
 
+<div id="loadingIndicator" class="alert alert-info" style="display: none;">
+    Cargando datos...
+</div>
+
+<div id="errorMessage" class="alert alert-danger" style="display: none;">
+</div>
+
+
 <div class="row mb-4">
     <div class="col-md-6">
         <div class="card">
@@ -115,7 +123,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
           <button type="button" class="btn btn-primary" id="btnLiberar" style="display: none;">Liberar Estacionamiento</button>
-          <button type="button" class="btn btn-danger" id="btnFueraServicio">Poner Fuera de Servicio</button>
+          <button type="button" class="btn btn-success" id="btnCambiarEstado">Poner Fuera de Servicio</button>
         </div>
       </div>
     </div>
@@ -175,30 +183,27 @@
 
     // Función para actualizar el estado de un estacionamiento
     function actualizarEstacionamiento(id, nuevoEstado) {
-        const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
+    const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
+    if (estacionamiento && estacionamiento.classList[1] !== nuevoEstado) {
         estacionamiento.className = `estacionamiento ${nuevoEstado} p-2 text-center text-white`;
         
-        // Actualizar el conteo y el gráfico
+        // Actualizar el conteo y el gráfico solo si ha habido un cambio
         actualizarConteoEstados();
         actualizarGrafico();
-    
-        // Aquí deberías hacer una llamada al servidor para actualizar el estado
-        console.log(`Actualizando estacionamiento ${id} a ${nuevoEstado}`);
     }
+}
 
     // Función para actualizar el conteo de estados
-    function actualizarConteoEstados(estados) {
-        if (!estados) {
-            estados = {
-                disponible: document.querySelectorAll('.estacionamiento.disponible').length,
-                ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
-                fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
-            };
-        }
+    function actualizarConteoEstados() {
+        const conteoEstados = {
+            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+        };
         
         const conteoList = document.getElementById('conteo-estados');
         conteoList.innerHTML = '';
-        for (const [estado, cantidad] of Object.entries(estados)) {
+        for (const [estado, cantidad] of Object.entries(conteoEstados)) {
             conteoList.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     ${estado.charAt(0).toUpperCase() + estado.slice(1)}
@@ -209,21 +214,118 @@
     }
 
     // Función para actualizar el gráfico
-    function actualizarGrafico(estados) {
-        if (!estados) {
-            estados = {
-                disponible: document.querySelectorAll('.estacionamiento.disponible').length,
-                ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
-                fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
-            };
-        }
+    function actualizarGrafico() {
+        const conteoEstados = {
+            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+        };
         
         estadosChart.data.datasets[0].data = [
-            estados.disponible,
-            estados.ocupado,
-            estados.fuera_de_servicio
+            conteoEstados.disponible,
+            conteoEstados.ocupado,
+            conteoEstados.fuera_de_servicio
         ];
         estadosChart.update();
+    }
+
+    // Función para mostrar el indicador de carga
+    function mostrarCargando() {
+        document.getElementById('loadingIndicator').style.display = 'block';
+    }
+
+    // Función para ocultar el indicador de carga
+    function ocultarCargando() {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+
+    // Función para mostrar mensajes de error
+    function mostrarError(mensaje) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);  // El mensaje de error desaparecerá después de 5 segundos
+    }
+
+    // Función para actualizar alertas
+    function actualizarAlertas(alertas) {
+        const listaAlertas = document.getElementById('lista-alertas');
+        listaAlertas.innerHTML = '';
+        alertas.forEach(alerta => {
+            listaAlertas.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="${alerta.tipo}" data-fecha="${alerta.fecha}">
+                    <span>
+                        <strong>${alerta.fecha}:</strong> ${alerta.mensaje}
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="${alerta.id}">Marcar como leída</button>
+                </li>
+            `;
+        });
+        actualizarContadorAlertas();
+    }
+
+    // Función para actualizar el contador de alertas
+    function actualizarContadorAlertas() {
+        const alertasNoLeidas = document.querySelectorAll('#lista-alertas li').length;
+        document.getElementById('alertas-no-leidas').textContent = alertasNoLeidas;
+    }
+
+    // Función para obtener actualizaciones del servidor
+    function obtenerActualizaciones() {
+    mostrarCargando();
+    fetch('/get_updates')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Actualizar el mapa de estacionamientos
+            data.garajes.forEach(garaje => {
+                actualizarEstacionamiento(garaje.id, garaje.estado);
+            });
+
+            // Actualizar las alertas
+            actualizarAlertas(data.alertas);
+
+            // Actualizar el conteo de estados y el gráfico
+            actualizarConteoEstados(data.estados_estacionamientos);
+            actualizarGrafico(data.estados_estacionamientos);
+        })
+        .catch(error => {
+            console.error('Error al obtener actualizaciones:', error);
+            mostrarError('Hubo un problema al actualizar los datos. Por favor, intente de nuevo más tarde.');
+        })
+        .finally(() => {
+            ocultarCargando();
+        });
+}
+    // Función para obtener actualizaciones del servidor
+    function obtenerActualizaciones() {
+        mostrarCargando();
+        fetch('/get_updates')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                return response.json();
+            })
+            .then(data => {
+                data.garajes.forEach(garaje => {
+                    actualizarEstacionamiento(garaje.id, garaje.estado);
+                });
+                actualizarAlertas(data.alertas);
+            })
+            .catch(error => {
+                console.error('Error al obtener actualizaciones:', error);
+                mostrarError('Hubo un problema al actualizar los datos. Por favor, intente de nuevo más tarde.');
+            })
+            .finally(() => {
+                ocultarCargando();
+            });
     }
 
     // Event listeners para los estacionamientos
@@ -246,155 +348,101 @@
         });
     });
 
+    // Función para mostrar detalles del estacionamiento
     function mostrarDetallesEstacionamiento(detalles) {
-        document.getElementById('estacionamientoId').textContent = detalles.id;
-        document.getElementById('estacionamientoEstado').textContent = detalles.estado;
-        document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
-        
-        const infoOcupado = document.getElementById('infoOcupado');
-        const btnLiberar = document.getElementById('btnLiberar');
-        
-        if (detalles.estado === 'ocupado') {
-            infoOcupado.style.display = 'block';
-            btnLiberar.style.display = 'inline-block';
-            document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
-            document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
-        } else {
-            infoOcupado.style.display = 'none';
-            btnLiberar.style.display = 'none';
-        }
-        
-        // Mostrar el modal
-        new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
+    document.getElementById('estacionamientoId').textContent = detalles.id;
+    document.getElementById('estacionamientoEstado').textContent = detalles.estado;
+    document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
+    
+    const infoOcupado = document.getElementById('infoOcupado');
+    const btnLiberar = document.getElementById('btnLiberar');
+    const btnCambiarEstado = document.getElementById('btnCambiarEstado');
+
+    if (detalles.estado === 'fuera_de_servicio') {
+        btnCambiarEstado.textContent = 'Poner en Servicio';
+        btnCambiarEstado.classList.remove('btn-danger');
+        btnCambiarEstado.classList.add('btn-success');
+    } else {
+        btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
+        btnCambiarEstado.classList.remove('btn-success');
+        btnCambiarEstado.classList.add('btn-danger');
     }
+
+    new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
+}
 
     // Event listener para el botón de liberar
     document.getElementById('btnLiberar').addEventListener('click', () => {
         const id = document.getElementById('estacionamientoId').textContent;
-        // Aquí deberías hacer una llamada al servidor para liberar el estacionamiento
-        console.log(`Liberando estacionamiento ${id}`);
-        actualizarEstacionamiento(id, 'disponible');
-        // Cerrar el modal
-        bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
+        mostrarCargando();
+        fetch('/actualizar_estacionamiento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id, estado: 'disponible'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                actualizarEstacionamiento(id, 'disponible');
+                bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
+            } else {
+                throw new Error('No se pudo liberar el estacionamiento');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarError('No se pudo liberar el estacionamiento. Por favor, intente de nuevo.');
+        })
+        .finally(() => {
+            ocultarCargando();
+        });
     });
 
     // Event listener para el botón de poner fuera de servicio
-    document.getElementById('btnFueraServicio').addEventListener('click', () => {
-        const id = document.getElementById('estacionamientoId').textContent;
-        // Aquí deberías hacer una llamada al servidor para poner el estacionamiento fuera de servicio
-        console.log(`Poniendo estacionamiento ${id} fuera de servicio`);
-        actualizarEstacionamiento(id, 'fuera_de_servicio');
-        // Cerrar el modal
-        bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
-    });
-
-    // Event listeners para marcar alertas como leídas
-    document.querySelectorAll('.marcar-leida').forEach(button => {
-        button.addEventListener('click', event => {
-            const alertaId = event.target.dataset.id;
-            event.target.closest('li').remove();
-            actualizarContadorAlertas();
-            // Aquí deberías hacer una llamada al servidor para marcar la alerta como leída
-        });
-    });
-
-    function actualizarContadorAlertas() {
-        const alertasNoLeidas = document.querySelectorAll('#lista-alertas li').length;
-        document.getElementById('alertas-no-leidas').textContent = alertasNoLeidas;
-    }
-
-    actualizarContadorAlertas();
-
-    // Función para obtener actualizaciones del servidor
-    function obtenerActualizaciones() {
-        fetch('/get_updates')
-            .then(response => response.json())
-            .then(data => {
-                // Actualizar el mapa de estacionamientos
-                data.garajes.forEach(garaje => {
-                    actualizarEstacionamiento(garaje.id, garaje.estado);
-                });
-
-                // Actualizar las alertas
-                actualizarAlertas(data.alertas);
-
-                // Actualizar el conteo de estados y el gráfico
-                actualizarConteoEstados(data.estados_estacionamientos);
-                actualizarGrafico(data.estados_estacionamientos);
-            })
-            .catch(error => console.error('Error al obtener actualizaciones:', error));
-    }
-
-    // Función para filtrar alertas
-    function filtrarAlertas() {
-        const tipoFiltro = document.getElementById('filtroTipoAlerta').value;
-        const fechaFiltro = document.getElementById('filtroFechaAlerta').value;
-        const alertas = document.querySelectorAll('#lista-alertas li');
-
-        alertas.forEach(alerta => {
-            const tipoAlerta = alerta.dataset.tipo;
-            const fechaAlerta = alerta.dataset.fecha;
-            let mostrar = true;
-
-            if (tipoFiltro !== 'todas' && tipoAlerta !== tipoFiltro) {
-                mostrar = false;
+    document.getElementById('btnCambiarEstado').addEventListener('click', () => {
+    const id = document.getElementById('estacionamientoId').textContent;
+    const estadoActual = document.getElementById('estacionamientoEstado').textContent;
+    const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
+    
+    mostrarCargando();
+    fetch('/actualizar_estacionamiento', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({id: id, estado: nuevoEstado})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            actualizarEstacionamiento(id, nuevoEstado);
+            const btn = document.getElementById('btnCambiarEstado');
+            if (nuevoEstado === 'fuera_de_servicio') {
+                btn.textContent = 'Poner en Servicio';
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-success');
+            } else {
+                btn.textContent = 'Poner Fuera de Servicio';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-danger');
             }
-
-            if (fechaFiltro && fechaAlerta !== fechaFiltro) {
-                mostrar = false;
-            }
-
-            alerta.style.display = mostrar ? '' : 'none';
-        });
-
-        actualizarContadorAlertas();
-    }
-
-    // Event listeners para los filtros
-    document.getElementById('filtroTipoAlerta').addEventListener('change', filtrarAlertas);
-    document.getElementById('filtroFechaAlerta').addEventListener('change', filtrarAlertas);
-
-
-// Modificar la función actualizarAlertas para incluir los atributos de datos
-    function actualizarAlertas(alertas) {
-        const listaAlertas = document.getElementById('lista-alertas');
-        listaAlertas.innerHTML = '';
-        alertas.forEach(alerta => {
-            listaAlertas.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="${alerta.tipo}" data-fecha="${alerta.fecha}">
-                    <span>
-                        <strong>${alerta.fecha}:</strong> ${alerta.mensaje}
-                    </span>
-                    <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="${alerta.id}">Marcar como leída</button>
-                </li>
-            `;
-        });
-        actualizarContadorAlertas();
-        filtrarAlertas(); // Aplicar filtros después de actualizar
-    }
-
-
-    // Actualizar cada 10 segundos
-    setInterval(obtenerActualizaciones, 10000);
-
-    // Llamar a la función inmediatamente para la primera actualización
+            document.getElementById('estacionamientoEstado').textContent = nuevoEstado;
+        } else {
+            throw new Error(`No se pudo cambiar el estado del estacionamiento a ${nuevoEstado}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarError(`No se pudo actualizar el estado del estacionamiento. Por favor, intente de nuevo.`);
+    })
+    .finally(() => {
+        ocultarCargando();
+    });
+});
+    // Inicializar las actualizaciones
     obtenerActualizaciones();
-
-    // Código de simulación 
-
-    /*Para activar las simulaciones en lugar de las actualizaciones en tiempo real:
-    Comenta o elimina las siguientes líneas al final del script:
-    setInterval(obtenerActualizaciones, 10000);
-    obtenerActualizaciones();*/
-    /*
-    // Simulación de actualizaciones en tiempo real (cada 10 segundos)
-    setInterval(() => {
-        const estacionamientos = document.querySelectorAll('.estacionamiento');
-        const randomEstacionamiento = estacionamientos[Math.floor(Math.random() * estacionamientos.length)];
-        const estados = ['disponible', 'ocupado', 'fuera_de_servicio'];
-        const nuevoEstado = estados[Math.floor(Math.random() * estados.length)];
-        actualizarEstacionamiento(randomEstacionamiento.dataset.id, nuevoEstado);
-    }, 10000);
-    */
+    setInterval(obtenerActualizaciones, 10000);  // Actualizar cada 10 segundos
 </script>
 {% endblock %}
