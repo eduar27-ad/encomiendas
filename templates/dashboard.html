@@ -67,15 +67,28 @@
                 <span class="badge bg-danger" id="alertas-no-leidas">0</span>
             </div>
             <div class="card-body">
+                <div class="mb-3">
+                    <label for="filtroTipoAlerta" class="form-label">Tipo de Alerta:</label>
+                    <select class="form-select" id="filtroTipoAlerta">
+                        <option value="todas">Todas</option>
+                        <option value="error">Error</option>
+                        <option value="advertencia">Advertencia</option>
+                        <option value="info">Información</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="filtroFechaAlerta" class="form-label">Fecha:</label>
+                    <input type="date" class="form-control" id="filtroFechaAlerta">
+                </div>
                 <ul class="list-group" id="lista-alertas">
-                {% for alerta in alertas %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {% for alerta in alertas %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="{{ alerta['tipo'] }}" data-fecha="{{ alerta['fecha'] }}">
                         <span>
                             <strong>{{ alerta['fecha'] }}:</strong> {{ alerta['mensaje'] }}
                         </span>
                         <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="{{ alerta['id'] }}">Marcar como leída</button>
                     </li>
-                {% endfor %}
+                    {% endfor %}
                 </ul>
             </div>
         </div>
@@ -312,13 +325,43 @@
             .catch(error => console.error('Error al obtener actualizaciones:', error));
     }
 
-    // Función para actualizar las alertas
+    // Función para filtrar alertas
+    function filtrarAlertas() {
+        const tipoFiltro = document.getElementById('filtroTipoAlerta').value;
+        const fechaFiltro = document.getElementById('filtroFechaAlerta').value;
+        const alertas = document.querySelectorAll('#lista-alertas li');
+
+        alertas.forEach(alerta => {
+            const tipoAlerta = alerta.dataset.tipo;
+            const fechaAlerta = alerta.dataset.fecha;
+            let mostrar = true;
+
+            if (tipoFiltro !== 'todas' && tipoAlerta !== tipoFiltro) {
+                mostrar = false;
+            }
+
+            if (fechaFiltro && fechaAlerta !== fechaFiltro) {
+                mostrar = false;
+            }
+
+            alerta.style.display = mostrar ? '' : 'none';
+        });
+
+        actualizarContadorAlertas();
+    }
+
+    // Event listeners para los filtros
+    document.getElementById('filtroTipoAlerta').addEventListener('change', filtrarAlertas);
+    document.getElementById('filtroFechaAlerta').addEventListener('change', filtrarAlertas);
+
+
+// Modificar la función actualizarAlertas para incluir los atributos de datos
     function actualizarAlertas(alertas) {
         const listaAlertas = document.getElementById('lista-alertas');
         listaAlertas.innerHTML = '';
         alertas.forEach(alerta => {
             listaAlertas.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="${alerta.tipo}" data-fecha="${alerta.fecha}">
                     <span>
                         <strong>${alerta.fecha}:</strong> ${alerta.mensaje}
                     </span>
@@ -327,7 +370,9 @@
             `;
         });
         actualizarContadorAlertas();
+        filtrarAlertas(); // Aplicar filtros después de actualizar
     }
+
 
     // Actualizar cada 10 segundos
     setInterval(obtenerActualizaciones, 10000);
