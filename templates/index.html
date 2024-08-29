@@ -55,6 +55,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div id="modalMessage" class="alert d-none"></div>
                 <div id="infoUsuario"></div>
                 <div id="listaEncomiendas" class="mt-3">
                     <h6 class="mb-2">Encomiendas pendientes:</h6>
@@ -88,10 +89,18 @@
                     li.textContent = `${notif.fecha}: ${notif.mensaje}`;
                     lista.appendChild(li);
                 });
-            });
+            })
+            .catch(error => console.error('Error al obtener notificaciones:', error));
     }
 
     setInterval(actualizarNotificaciones, 30000);
+
+    function showModalMessage(message, isError = false) {
+        const modalMessage = document.getElementById('modalMessage');
+        modalMessage.textContent = message;
+        modalMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
+        modalMessage.classList.add(isError ? 'alert-danger' : 'alert-success');
+    }
 
     document.getElementById('consultaForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -119,12 +128,14 @@
                 
                 new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
             } else {
-                alert(data.message);
+                showModalMessage(data.message, true);
+                new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Ocurrió un error al procesar la solicitud.');
+            showModalMessage('Ocurrió un error al procesar la solicitud.', true);
+            new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
         });
 
         this.reset();
@@ -148,18 +159,17 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`Entrada activada. Se ha asignado el garaje ${data.garaje}.`);
-                    bootstrap.Modal.getInstance(document.getElementById('resultadoConsultaModal')).hide();
+                    showModalMessage(`Entrada activada. Se ha asignado el garaje ${data.garaje}.`);
                 } else {
-                    alert(data.message);
+                    showModalMessage(data.message, true);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ocurrió un error al activar la entrada.');
+                showModalMessage('Ocurrió un error al activar la entrada.', true);
             });
         } else {
-            alert("Por favor, seleccione al menos una encomienda.");
+            showModalMessage("Por favor, seleccione al menos una encomienda.", true);
         }
     });
 

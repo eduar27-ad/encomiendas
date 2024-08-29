@@ -1,33 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
+
 <h1 class="text-center mb-4">Dashboard</h1>
 
-<div class="row">
+<div class="row mb-4">
     <div class="col-md-6">
         <h2>Estado de los Garajes</h2>
-        <div class="row">
-            {% for garaje in garajes %}
-            <div class="col-3 mb-3">
-                <div class="card">
-                    <div class="card-body text-center {{ garaje['estado'] }}">
-                        <h5 class="card-title">{{ garaje['id'] }}</h5>
-                        <p class="card-text">{{ garaje['estado'] }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+        <ul>
+        {% for garaje in garajes %}
+            <li>{{ garaje['id'] }}: {{ garaje['estado'] }}</li>
+        {% endfor %}
+        </ul>
     </div>
-    
     <div class="col-md-6">
-        <h2>Últimas Alertas</h2>
-        <ul class="list-group">
-            {% for alerta in alertas %}
-            <li class="list-group-item">
-                <strong>{{ alerta['fecha'] }}</strong>: {{ alerta['mensaje'] }}
-            </li>
-            {% endfor %}
+        <h2>Conteo de Estados</h2>
+        <ul>
+        {% for estado, cantidad in estados_estacionamientos.items() %}
+            <li>{{ estado }}: {{ cantidad }}</li>
+        {% endfor %}
         </ul>
     </div>
 </div>
+
+<div class="row">
+    <div class="col-12">
+        <h2>Últimas Alertas</h2>
+        <ul>
+        {% for alerta in alertas %}
+            <li>{{ alerta['fecha'] }}: {{ alerta['mensaje'] }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+
 {% endblock %}

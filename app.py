@@ -43,34 +43,48 @@ def consultar_encomienda():
 @app.route('/activar_entrada', methods=['POST'])
 def activar_entrada():
     """Asigna un estacionamiento disponible aleatoriamente."""
-    encomienda_id = request.form.get('encomienda_id')
     conn = get_db_connection()
     garajes_disponibles = conn.execute('SELECT id FROM garajes WHERE estado = "disponible"').fetchall()
     if garajes_disponibles:
         garaje_asignado = random.choice(garajes_disponibles)
         conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_asignado['id'],))
-        conn.execute('UPDATE encomiendas SET fecha_entrega = ? WHERE id = ?', (datetime.now(), encomienda_id))
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'garaje': garaje_asignado['id']})
     conn.close()
     return jsonify({'success': False, 'message': 'No hay garajes disponibles'})
 
-@app.route('/get_notificaciones')
-def get_notificaciones():
-    """Retorna las últimas notificaciones."""
-    conn = get_db_connection()
-    notificaciones = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
-    conn.close()
-    return jsonify([{'mensaje': n['mensaje'], 'fecha': n['fecha']} for n in notificaciones])
-
 @app.route('/dashboard')
 def dashboard():
     conn = get_db_connection()
     garajes = conn.execute('SELECT * FROM garajes').fetchall()
     alertas = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
+    
+    # Contar estacionamientos por estado
+    estados_estacionamientos = {
+        'disponible': 0,
+        'ocupado': 0,
+        'fuera_de_servicio': 0
+    }
+    for garaje in garajes:
+        estado = garaje['estado']
+        if estado in estados_estacionamientos:
+            estados_estacionamientos[estado] += 1
+        else:
+            estados_estacionamientos['fuera_de_servicio'] += 1
+    
+    print("Estados de estacionamientos:", estados_estacionamientos)  # Print de depuración
+    
     conn.close()
-    return render_template('dashboard.html', garajes=garajes, alertas=alertas)
+    
+    context = {
+        'garajes': garajes,
+        'alertas': alertas,
+        'estados_estacionamientos': estados_estacionamientos
+    }
+    print("Contexto completo:", context)  # Print de depuración
+    
+    return render_template('dashboard.html', **context)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
