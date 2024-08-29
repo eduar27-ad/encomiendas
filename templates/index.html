@@ -78,30 +78,42 @@
 
 {% block extra_js %}
 <script>
-    function actualizarNotificaciones() {
-        fetch('/get_notificaciones')
+    // Función para actualizar los estacionamientos
+    function actualizarEstacionamientos() {
+        fetch('/get_updates')
             .then(response => response.json())
             .then(data => {
-                const lista = document.getElementById('listaNotificaciones');
-                lista.innerHTML = '';
-                data.slice(0, 3).forEach(notif => {
-                    const li = document.createElement('li');
-                    li.textContent = `${notif.fecha}: ${notif.mensaje}`;
-                    lista.appendChild(li);
+                data.garajes.forEach(garaje => {
+                    const estacionamiento = document.querySelector(`.estacionamiento[data-id="${garaje.id}"]`);
+                    if (estacionamiento) {
+                        estacionamiento.className = `estacionamiento ${garaje.estado} p-2 text-center text-white`;
+                    }
                 });
+                actualizarLeyenda();
             })
-            .catch(error => console.error('Error al obtener notificaciones:', error));
+            .catch(error => console.error('Error al actualizar estacionamientos:', error));
     }
 
-    setInterval(actualizarNotificaciones, 30000);
+    // Función para actualizar la leyenda
+    function actualizarLeyenda() {
+        const disponibles = document.querySelectorAll('.estacionamiento.disponible').length;
+        const ocupados = document.querySelectorAll('.estacionamiento.ocupado').length;
+        const fueraServicio = document.querySelectorAll('.estacionamiento.fuera-de-servicio').length;
 
-    function showModalMessage(message, isError = false) {
+        document.querySelector('.estacionamiento.disponible + span').textContent = `Disponible (${disponibles})`;
+        document.querySelector('.estacionamiento.ocupado + span').textContent = `Ocupado (${ocupados})`;
+        document.querySelector('.estacionamiento.fuera-de-servicio + span').textContent = `Fuera de Servicio (${fueraServicio})`;
+    }
+
+    // Función para mostrar mensajes en el modal
+    function mostrarMensajeModal(mensaje, esError = false) {
         const modalMessage = document.getElementById('modalMessage');
-        modalMessage.textContent = message;
+        modalMessage.textContent = mensaje;
         modalMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
-        modalMessage.classList.add(isError ? 'alert-danger' : 'alert-success');
+        modalMessage.classList.add(esError ? 'alert-danger' : 'alert-success');
     }
 
+    // Event listener para el formulario de consulta de encomiendas
     document.getElementById('consultaForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -114,38 +126,35 @@
         .then(data => {
             if (data.success) {
                 document.getElementById('infoUsuario').innerHTML = `<p>Usuario: ${data.usuario}</p>`;
-                let encomiendasHTML = '';
+                let encomiendasHTML = '<h6 class="mb-2">Encomiendas pendientes:</h6><ul class="list-group">';
                 data.encomiendas.forEach(enc => {
                     encomiendasHTML += `
-                    <div class="form-check">
-                        <input class="form-check-input encomienda-check" type="checkbox" value="${enc.id}" id="enc${enc.id}">
-                        <label class="form-check-label" for="enc${enc.id}">
-                            ${enc.descripcion} - Llegó: ${enc.fecha}
-                        </label>
-                    </div>`;
+                        <li class="list-group-item">
+                            <div class="form-check">
+                                <input class="form-check-input encomienda-check" type="checkbox" value="${enc.id}" id="enc${enc.id}">
+                                <label class="form-check-label" for="enc${enc.id}">
+                                    ${enc.descripcion} - Llegó: ${enc.fecha}
+                                </label>
+                            </div>
+                        </li>`;
                 });
+                encomiendasHTML += '</ul>';
                 document.getElementById('encomiendas-list').innerHTML = encomiendasHTML;
                 
                 new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
             } else {
-                showModalMessage(data.message, true);
-                new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
+                mostrarMensajeModal(data.message, true);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showModalMessage('Ocurrió un error al procesar la solicitud.', true);
-            new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
+            mostrarMensajeModal('Ocurrió un error al procesar la solicitud.', true);
         });
 
         this.reset();
     });
 
-    document.getElementById('seleccionarTodas').addEventListener('change', function() {
-        const checks = document.querySelectorAll('.encomienda-check');
-        checks.forEach(check => check.checked = this.checked);
-    });
-
+    // Event listener para el botón de activar entrada
     document.getElementById('btnEntrada').addEventListener('click', function() {
         const encomiendas_seleccionadas = Array.from(document.querySelectorAll('.encomienda-check:checked')).map(el => el.value);
         if (encomiendas_seleccionadas.length > 0) {
@@ -159,20 +168,30 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showModalMessage(`Entrada activada. Se ha asignado el garaje ${data.garaje}.`);
+                    mostrarMensajeModal(`Entrada activada. Se ha asignado el garaje ${data.garaje}.`);
+                    actualizarEstacionamientos();
                 } else {
-                    showModalMessage(data.message, true);
+                    mostrarMensajeModal(data.message, true);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showModalMessage('Ocurrió un error al activar la entrada.', true);
+                mostrarMensajeModal('Ocurrió un error al activar la entrada.', true);
             });
         } else {
-            showModalMessage("Por favor, seleccione al menos una encomienda.", true);
+            mostrarMensajeModal("Por favor, seleccione al menos una encomienda.", true);
         }
     });
 
-    window.onload = actualizarNotificaciones;
+    // Event listener para seleccionar todas las encomiendas
+    document.getElementById('seleccionarTodas').addEventListener('change', function() {
+        document.querySelectorAll('.encomienda-check').forEach(check => {
+            check.checked = this.checked;
+        });
+    });
+
+    // Inicializar
+    actualizarEstacionamientos();
+    setInterval(actualizarEstacionamientos, 10000);  // Actualizar cada 10 segundos
 </script>
 {% endblock %}
