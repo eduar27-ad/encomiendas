@@ -169,21 +169,23 @@
         actualizarConteoEstados();
         actualizarGrafico();
     
-    // Aquí deberías hacer una llamada al servidor para actualizar el estado
-    console.log(`Actualizando estacionamiento ${id} a ${nuevoEstado}`);
+        // Aquí deberías hacer una llamada al servidor para actualizar el estado
+        console.log(`Actualizando estacionamiento ${id} a ${nuevoEstado}`);
     }
 
     // Función para actualizar el conteo de estados
-    function actualizarConteoEstados() {
-        const conteoEstados = {
-            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
-            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
-            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
-        };
+    function actualizarConteoEstados(estados) {
+        if (!estados) {
+            estados = {
+                disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+                ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+                fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+            };
+        }
         
         const conteoList = document.getElementById('conteo-estados');
         conteoList.innerHTML = '';
-        for (const [estado, cantidad] of Object.entries(conteoEstados)) {
+        for (const [estado, cantidad] of Object.entries(estados)) {
             conteoList.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     ${estado.charAt(0).toUpperCase() + estado.slice(1)}
@@ -194,62 +196,64 @@
     }
 
     // Función para actualizar el gráfico
-    function actualizarGrafico() {
-        const conteoEstados = {
-            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
-            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
-            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
-        };
+    function actualizarGrafico(estados) {
+        if (!estados) {
+            estados = {
+                disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+                ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+                fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+            };
+        }
         
         estadosChart.data.datasets[0].data = [
-            conteoEstados.disponible,
-            conteoEstados.ocupado,
-            conteoEstados.fuera_de_servicio
+            estados.disponible,
+            estados.ocupado,
+            estados.fuera_de_servicio
         ];
         estadosChart.update();
     }
 
     // Event listeners para los estacionamientos
-document.querySelectorAll('.estacionamiento').forEach(item => {
-    item.addEventListener('click', event => {
-        const id = event.target.dataset.id;
-        const estado = event.target.classList[1];
-        
-        // Aquí deberías hacer una llamada al servidor para obtener los detalles del estacionamiento
-        // Por ahora, simularemos algunos datos
-        const detalles = {
-            id: id,
-            estado: estado,
-            ultimoUso: '2023-08-29 15:30',
-            usuario: 'Juan Pérez',
-            tiempoOcupacion: '2 horas 15 minutos'
-        };
-        
-        mostrarDetallesEstacionamiento(detalles);
+    document.querySelectorAll('.estacionamiento').forEach(item => {
+        item.addEventListener('click', event => {
+            const id = event.target.dataset.id;
+            const estado = event.target.classList[1];
+            
+            // Aquí deberías hacer una llamada al servidor para obtener los detalles del estacionamiento
+            // Por ahora, simularemos algunos datos
+            const detalles = {
+                id: id,
+                estado: estado,
+                ultimoUso: '2023-08-29 15:30',
+                usuario: 'Juan Pérez',
+                tiempoOcupacion: '2 horas 15 minutos'
+            };
+            
+            mostrarDetallesEstacionamiento(detalles);
+        });
     });
-});
 
-function mostrarDetallesEstacionamiento(detalles) {
-    document.getElementById('estacionamientoId').textContent = detalles.id;
-    document.getElementById('estacionamientoEstado').textContent = detalles.estado;
-    document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
-    
-    const infoOcupado = document.getElementById('infoOcupado');
-    const btnLiberar = document.getElementById('btnLiberar');
-    
-    if (detalles.estado === 'ocupado') {
-        infoOcupado.style.display = 'block';
-        btnLiberar.style.display = 'inline-block';
-        document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
-        document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
-    } else {
-        infoOcupado.style.display = 'none';
-        btnLiberar.style.display = 'none';
+    function mostrarDetallesEstacionamiento(detalles) {
+        document.getElementById('estacionamientoId').textContent = detalles.id;
+        document.getElementById('estacionamientoEstado').textContent = detalles.estado;
+        document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
+        
+        const infoOcupado = document.getElementById('infoOcupado');
+        const btnLiberar = document.getElementById('btnLiberar');
+        
+        if (detalles.estado === 'ocupado') {
+            infoOcupado.style.display = 'block';
+            btnLiberar.style.display = 'inline-block';
+            document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
+            document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
+        } else {
+            infoOcupado.style.display = 'none';
+            btnLiberar.style.display = 'none';
+        }
+        
+        // Mostrar el modal
+        new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
     }
-    
-    // Mostrar el modal
-    new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
-}
 
     // Event listener para el botón de liberar
     document.getElementById('btnLiberar').addEventListener('click', () => {
@@ -288,6 +292,56 @@ function mostrarDetallesEstacionamiento(detalles) {
 
     actualizarContadorAlertas();
 
+    // Función para obtener actualizaciones del servidor
+    function obtenerActualizaciones() {
+        fetch('/get_updates')
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar el mapa de estacionamientos
+                data.garajes.forEach(garaje => {
+                    actualizarEstacionamiento(garaje.id, garaje.estado);
+                });
+
+                // Actualizar las alertas
+                actualizarAlertas(data.alertas);
+
+                // Actualizar el conteo de estados y el gráfico
+                actualizarConteoEstados(data.estados_estacionamientos);
+                actualizarGrafico(data.estados_estacionamientos);
+            })
+            .catch(error => console.error('Error al obtener actualizaciones:', error));
+    }
+
+    // Función para actualizar las alertas
+    function actualizarAlertas(alertas) {
+        const listaAlertas = document.getElementById('lista-alertas');
+        listaAlertas.innerHTML = '';
+        alertas.forEach(alerta => {
+            listaAlertas.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <strong>${alerta.fecha}:</strong> ${alerta.mensaje}
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="${alerta.id}">Marcar como leída</button>
+                </li>
+            `;
+        });
+        actualizarContadorAlertas();
+    }
+
+    // Actualizar cada 10 segundos
+    setInterval(obtenerActualizaciones, 10000);
+
+    // Llamar a la función inmediatamente para la primera actualización
+    obtenerActualizaciones();
+
+    // Código de simulación 
+
+    /*Para activar las simulaciones en lugar de las actualizaciones en tiempo real:
+    Comenta o elimina las siguientes líneas al final del script:
+    setInterval(obtenerActualizaciones, 10000);
+    obtenerActualizaciones();*/
+    /*
     // Simulación de actualizaciones en tiempo real (cada 10 segundos)
     setInterval(() => {
         const estacionamientos = document.querySelectorAll('.estacionamiento');
@@ -296,5 +350,6 @@ function mostrarDetallesEstacionamiento(detalles) {
         const nuevoEstado = estados[Math.floor(Math.random() * estados.length)];
         actualizarEstacionamiento(randomEstacionamiento.dataset.id, nuevoEstado);
     }, 10000);
+    */
 </script>
 {% endblock %}

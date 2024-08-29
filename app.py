@@ -142,5 +142,32 @@ def encomienda():
     conn.close()
     return render_template('encomienda.html', usuarios=usuarios)
 
+
+@app.route('/get_updates')
+def get_updates():
+    conn = get_db_connection()
+    garajes = conn.execute('SELECT * FROM garajes').fetchall()
+    alertas = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
+    
+    estados_estacionamientos = {
+        'disponible': 0,
+        'ocupado': 0,
+        'fuera_de_servicio': 0
+    }
+    for garaje in garajes:
+        estado = garaje['estado']
+        if estado in estados_estacionamientos:
+            estados_estacionamientos[estado] += 1
+        else:
+            estados_estacionamientos['fuera_de_servicio'] += 1
+    
+    conn.close()
+    
+    return jsonify({
+        'garajes': [dict(garaje) for garaje in garajes],
+        'alertas': [dict(alerta) for alerta in alertas],
+        'estados_estacionamientos': estados_estacionamientos
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
