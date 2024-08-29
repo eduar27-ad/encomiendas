@@ -30,13 +30,26 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
+                <h2 class="h5 mb-0">Distribución de Estados</h2>
+            </div>
+            <div class="card-body">
+                <canvas id="estadosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
                 <h2 class="h5 mb-0">Conteo de Estados</h2>
             </div>
             <div class="card-body">
-                <ul class="list-group">
+                <ul class="list-group" id="conteo-estados">
                 {% for estado, cantidad in estados_estacionamientos.items() %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ estado }}
+                        {{ estado | capitalize }}
                         <span class="badge bg-{{ 'success' if estado == 'disponible' else 'warning' if estado == 'ocupado' else 'danger' }} rounded-pill">{{ cantidad }}</span>
                     </li>
                 {% endfor %}
@@ -80,30 +93,114 @@
         cursor: pointer;
         font-size: 1.2em;
         font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .disponible { background-color: #28a745; }
-    .ocupado { background-color: #ffc107; }
+    .ocupado { background-color: #ffc107; color: #212529; }
     .fuera_de_servicio { background-color: #dc3545; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Datos del gráfico pasados desde Python
+    var estadosEstacionamientos = JSON.parse('{{ estados_estacionamientos | tojson | safe }}');
+
+    // Configuración del gráfico circular
+    const ctx = document.getElementById('estadosChart').getContext('2d');
+    const estadosChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Disponible', 'Ocupado', 'Fuera de servicio'],
+            datasets: [{
+                data: [
+                    estadosEstacionamientos['disponible'] || 0,
+                    estadosEstacionamientos['ocupado'] || 0,
+                    estadosEstacionamientos['fuera_de_servicio'] || 0
+                ],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Función para actualizar el estado de un estacionamiento
+    function actualizarEstacionamiento(id, nuevoEstado) {
+        const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
+        estacionamiento.className = `estacionamiento ${nuevoEstado} p-2 text-center text-white`;
+        
+        // Actualizar el conteo y el gráfico
+        actualizarConteoEstados();
+        actualizarGrafico();
+    }
+
+    // Función para actualizar el conteo de estados
+    function actualizarConteoEstados() {
+        const conteoEstados = {
+            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+        };
+        
+        const conteoList = document.getElementById('conteo-estados');
+        conteoList.innerHTML = '';
+        for (const [estado, cantidad] of Object.entries(conteoEstados)) {
+            conteoList.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${estado.charAt(0).toUpperCase() + estado.slice(1)}
+                    <span class="badge bg-${estado === 'disponible' ? 'success' : estado === 'ocupado' ? 'warning' : 'danger'} rounded-pill">${cantidad}</span>
+                </li>
+            `;
+        }
+    }
+
+    // Función para actualizar el gráfico
+    function actualizarGrafico() {
+        const conteoEstados = {
+            disponible: document.querySelectorAll('.estacionamiento.disponible').length,
+            ocupado: document.querySelectorAll('.estacionamiento.ocupado').length,
+            fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
+        };
+        
+        estadosChart.data.datasets[0].data = [
+            conteoEstados.disponible,
+            conteoEstados.ocupado,
+            conteoEstados.fuera_de_servicio
+        ];
+        estadosChart.update();
+    }
+
+    // Event listeners para los estacionamientos
     document.querySelectorAll('.estacionamiento').forEach(item => {
         item.addEventListener('click', event => {
             const id = event.target.dataset.id;
-            const estado = event.target.classList[1];
-            alert(`Estacionamiento ${id} está ${estado}`);
-            // Aquí puedes añadir lógica para cambiar el estado si lo deseas
+            const estadoActual = event.target.classList[1];
+            const nuevoEstado = estadoActual === 'disponible' ? 'ocupado' : 
+                                estadoActual === 'ocupado' ? 'fuera_de_servicio' : 'disponible';
+            
+            // Aquí deberías hacer una llamada al servidor para actualizar el estado
+            // Por ahora, solo actualizaremos la UI
+            actualizarEstacionamiento(id, nuevoEstado);
         });
     });
 
+    // Event listeners para marcar alertas como leídas
     document.querySelectorAll('.marcar-leida').forEach(button => {
         button.addEventListener('click', event => {
             const alertaId = event.target.dataset.id;
             event.target.closest('li').remove();
             actualizarContadorAlertas();
-            // Aquí puedes añadir lógica para marcar la alerta como leída en el servidor
+            // Aquí deberías hacer una llamada al servidor para marcar la alerta como leída
         });
     });
 
@@ -113,5 +210,14 @@
     }
 
     actualizarContadorAlertas();
+
+    // Simulación de actualizaciones en tiempo real (cada 10 segundos)
+    setInterval(() => {
+        const estacionamientos = document.querySelectorAll('.estacionamiento');
+        const randomEstacionamiento = estacionamientos[Math.floor(Math.random() * estacionamientos.length)];
+        const estados = ['disponible', 'ocupado', 'fuera_de_servicio'];
+        const nuevoEstado = estados[Math.floor(Math.random() * estados.length)];
+        actualizarEstacionamiento(randomEstacionamiento.dataset.id, nuevoEstado);
+    }, 10000);
 </script>
 {% endblock %}

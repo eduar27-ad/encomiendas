@@ -54,6 +54,25 @@ def activar_entrada():
     conn.close()
     return jsonify({'success': False, 'message': 'No hay garajes disponibles'})
 
+@app.route('/actualizar_estacionamiento', methods=['POST'])
+def actualizar_estacionamiento():
+    id = request.json['id']
+    nuevo_estado = request.json['estado']
+    conn = get_db_connection()
+    conn.execute('UPDATE garajes SET estado = ? WHERE id = ?', (nuevo_estado, id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/marcar_alerta_leida', methods=['POST'])
+def marcar_alerta_leida():
+    id = request.json['id']
+    conn = get_db_connection()
+    conn.execute('UPDATE alertas SET leida = 1 WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
 @app.route('/dashboard')
 def dashboard():
     conn = get_db_connection()
@@ -73,18 +92,12 @@ def dashboard():
         else:
             estados_estacionamientos['fuera_de_servicio'] += 1
     
-    print("Estados de estacionamientos:", estados_estacionamientos)  # Print de depuración
-    
     conn.close()
     
-    context = {
-        'garajes': garajes,
-        'alertas': alertas,
-        'estados_estacionamientos': estados_estacionamientos
-    }
-    print("Contexto completo:", context)  # Print de depuración
-    
-    return render_template('dashboard.html', **context)
+    return render_template('dashboard.html', 
+                           garajes=garajes, 
+                           alertas=alertas, 
+                           estados_estacionamientos=estados_estacionamientos)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
