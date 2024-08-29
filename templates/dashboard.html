@@ -5,32 +5,113 @@
 
 <div class="row mb-4">
     <div class="col-md-6">
-        <h2>Estado de los Garajes</h2>
-        <ul>
-        {% for garaje in garajes %}
-            <li>{{ garaje['id'] }}: {{ garaje['estado'] }}</li>
-        {% endfor %}
-        </ul>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Mapa de Estacionamientos</h2>
+            </div>
+            <div class="card-body">
+                <div id="mapaEstacionamientos" class="row row-cols-5 g-2">
+                    {% for garaje in garajes %}
+                    <div class="col">
+                        <div class="estacionamiento {{ garaje['estado'] }} p-2 text-center text-white" data-id="{{ garaje['id'] }}">
+                            {{ garaje['id'] }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3">
+                    <span class="badge bg-success">Disponible</span>
+                    <span class="badge bg-warning text-dark">Ocupado</span>
+                    <span class="badge bg-danger">Fuera de servicio</span>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="col-md-6">
-        <h2>Conteo de Estados</h2>
-        <ul>
-        {% for estado, cantidad in estados_estacionamientos.items() %}
-            <li>{{ estado }}: {{ cantidad }}</li>
-        {% endfor %}
-        </ul>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Conteo de Estados</h2>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                {% for estado, cantidad in estados_estacionamientos.items() %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ estado }}
+                        <span class="badge bg-{{ 'success' if estado == 'disponible' else 'warning' if estado == 'ocupado' else 'danger' }} rounded-pill">{{ cantidad }}</span>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-12">
-        <h2>Últimas Alertas</h2>
-        <ul>
-        {% for alerta in alertas %}
-            <li>{{ alerta['fecha'] }}: {{ alerta['mensaje'] }}</li>
-        {% endfor %}
-        </ul>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Últimas Alertas</h2>
+                <span class="badge bg-danger" id="alertas-no-leidas">0</span>
+            </div>
+            <div class="card-body">
+                <ul class="list-group" id="lista-alertas">
+                {% for alerta in alertas %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong>{{ alerta['fecha'] }}:</strong> {{ alerta['mensaje'] }}
+                        </span>
+                        <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="{{ alerta['id'] }}">Marcar como leída</button>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .estacionamiento {
+        height: 60px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+    .disponible { background-color: #28a745; }
+    .ocupado { background-color: #ffc107; }
+    .fuera_de_servicio { background-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.estacionamiento').forEach(item => {
+        item.addEventListener('click', event => {
+            const id = event.target.dataset.id;
+            const estado = event.target.classList[1];
+            alert(`Estacionamiento ${id} está ${estado}`);
+            // Aquí puedes añadir lógica para cambiar el estado si lo deseas
+        });
+    });
+
+    document.querySelectorAll('.marcar-leida').forEach(button => {
+        button.addEventListener('click', event => {
+            const alertaId = event.target.dataset.id;
+            event.target.closest('li').remove();
+            actualizarContadorAlertas();
+            // Aquí puedes añadir lógica para marcar la alerta como leída en el servidor
+        });
+    });
+
+    function actualizarContadorAlertas() {
+        const alertasNoLeidas = document.querySelectorAll('#lista-alertas li').length;
+        document.getElementById('alertas-no-leidas').textContent = alertasNoLeidas;
+    }
+
+    actualizarContadorAlertas();
+</script>
 {% endblock %}
