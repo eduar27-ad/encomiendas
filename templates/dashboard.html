@@ -82,6 +82,32 @@
     </div>
 </div>
 
+<!-- Modal de detalles del estacionamiento -->
+<div class="modal fade" id="estacionamientoModal" tabindex="-1" aria-labelledby="estacionamientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="estacionamientoModalLabel">Detalles del Estacionamiento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>ID:</strong> <span id="estacionamientoId"></span></p>
+          <p><strong>Estado:</strong> <span id="estacionamientoEstado"></span></p>
+          <p><strong>Última vez de uso:</strong> <span id="estacionamientoUltimoUso"></span></p>
+          <div id="infoOcupado" style="display: none;">
+            <p><strong>Usuario actual:</strong> <span id="estacionamientoUsuario"></span></p>
+            <p><strong>Tiempo de ocupación:</strong> <span id="estacionamientoTiempoOcupacion"></span></p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary" id="btnLiberar" style="display: none;">Liberar Estacionamiento</button>
+          <button type="button" class="btn btn-danger" id="btnFueraServicio">Poner Fuera de Servicio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block extra_css %}
@@ -142,6 +168,9 @@
         // Actualizar el conteo y el gráfico
         actualizarConteoEstados();
         actualizarGrafico();
+    
+    // Aquí deberías hacer una llamada al servidor para actualizar el estado
+    console.log(`Actualizando estacionamiento ${id} a ${nuevoEstado}`);
     }
 
     // Función para actualizar el conteo de estados
@@ -181,17 +210,65 @@
     }
 
     // Event listeners para los estacionamientos
-    document.querySelectorAll('.estacionamiento').forEach(item => {
-        item.addEventListener('click', event => {
-            const id = event.target.dataset.id;
-            const estadoActual = event.target.classList[1];
-            const nuevoEstado = estadoActual === 'disponible' ? 'ocupado' : 
-                                estadoActual === 'ocupado' ? 'fuera_de_servicio' : 'disponible';
-            
-            // Aquí deberías hacer una llamada al servidor para actualizar el estado
-            // Por ahora, solo actualizaremos la UI
-            actualizarEstacionamiento(id, nuevoEstado);
-        });
+document.querySelectorAll('.estacionamiento').forEach(item => {
+    item.addEventListener('click', event => {
+        const id = event.target.dataset.id;
+        const estado = event.target.classList[1];
+        
+        // Aquí deberías hacer una llamada al servidor para obtener los detalles del estacionamiento
+        // Por ahora, simularemos algunos datos
+        const detalles = {
+            id: id,
+            estado: estado,
+            ultimoUso: '2023-08-29 15:30',
+            usuario: 'Juan Pérez',
+            tiempoOcupacion: '2 horas 15 minutos'
+        };
+        
+        mostrarDetallesEstacionamiento(detalles);
+    });
+});
+
+function mostrarDetallesEstacionamiento(detalles) {
+    document.getElementById('estacionamientoId').textContent = detalles.id;
+    document.getElementById('estacionamientoEstado').textContent = detalles.estado;
+    document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
+    
+    const infoOcupado = document.getElementById('infoOcupado');
+    const btnLiberar = document.getElementById('btnLiberar');
+    
+    if (detalles.estado === 'ocupado') {
+        infoOcupado.style.display = 'block';
+        btnLiberar.style.display = 'inline-block';
+        document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
+        document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
+    } else {
+        infoOcupado.style.display = 'none';
+        btnLiberar.style.display = 'none';
+    }
+    
+    // Mostrar el modal
+    new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
+}
+
+    // Event listener para el botón de liberar
+    document.getElementById('btnLiberar').addEventListener('click', () => {
+        const id = document.getElementById('estacionamientoId').textContent;
+        // Aquí deberías hacer una llamada al servidor para liberar el estacionamiento
+        console.log(`Liberando estacionamiento ${id}`);
+        actualizarEstacionamiento(id, 'disponible');
+        // Cerrar el modal
+        bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
+    });
+
+    // Event listener para el botón de poner fuera de servicio
+    document.getElementById('btnFueraServicio').addEventListener('click', () => {
+        const id = document.getElementById('estacionamientoId').textContent;
+        // Aquí deberías hacer una llamada al servidor para poner el estacionamiento fuera de servicio
+        console.log(`Poniendo estacionamiento ${id} fuera de servicio`);
+        actualizarEstacionamiento(id, 'fuera_de_servicio');
+        // Cerrar el modal
+        bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
     });
 
     // Event listeners para marcar alertas como leídas
