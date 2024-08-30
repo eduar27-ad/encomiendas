@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 import sqlite3
+import re
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import random
 
@@ -107,17 +109,42 @@ def register():
         password = request.form['password']
         identificacion = request.form['identificacion']
         clave_dinamica = request.form['clave_dinamica']
+        
+        # Validaciones del lado del servidor
+        if len(username) < 3 or len(username) > 50:
+            flash('El nombre de usuario debe tener entre 3 y 50 caracteres.')
+            return redirect(url_for('register'))
+        
+        if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$', password):
+            flash('La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.')
+            return redirect(url_for('register'))
+        
+        if len(clave_dinamica) < 4 or len(clave_dinamica) > 8:
+            flash('La clave dinámica debe tener entre 4 y 8 caracteres.')
+            return redirect(url_for('register'))
+        
         conn = get_db_connection()
         try:
+            # Verificar si el usuario o la identificación ya existen
+            existing_user = conn.execute('SELECT * FROM usuarios WHERE username = ? OR identificacion = ?', 
+                                         (username, identificacion)).fetchone()
+            if existing_user:
+                flash('Error: El nombre de usuario o identificación ya existe')
+                return redirect(url_for('register'))
+            
+            # Hash de la contraseña
+            hashed_password = generate_password_hash(password)
+            
             conn.execute('INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES (?, ?, ?, ?)',
-                         (username, password, identificacion, clave_dinamica))
+                         (username, hashed_password, identificacion, clave_dinamica))
             conn.commit()
-            flash('Usuario registrado exitosamente')
+            flash('Usuario registrado exitosamente', 'success')
             return redirect(url_for('index'))
-        except sqlite3.IntegrityError:
-            flash('Error: El nombre de usuario o identificación ya existe')
+        except sqlite3.Error as e:
+            flash(f'Error al registrar el usuario: {str(e)}', 'error')
         finally:
             conn.close()
+    
     return render_template('register.html')
 
 @app.route('/encomienda', methods=['GET', 'POST'])
