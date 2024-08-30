@@ -112,25 +112,29 @@ def register():
         
         # Validaciones del lado del servidor
         if len(username) < 3 or len(username) > 50:
-            flash('El nombre de usuario debe tener entre 3 y 50 caracteres.')
-            return redirect(url_for('register'))
+            return jsonify({'success': False, 'message': 'El nombre de usuario debe tener entre 3 y 50 caracteres.'})
         
         if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$', password):
-            flash('La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.')
-            return redirect(url_for('register'))
+            return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.'})
         
-        if len(clave_dinamica) < 4 or len(clave_dinamica) > 8:
-            flash('La clave dinámica debe tener entre 4 y 8 caracteres.')
-            return redirect(url_for('register'))
+        if not re.match(r'^\d{4}$', clave_dinamica):
+            return jsonify({'success': False, 'message': 'La clave dinámica debe ser exactamente 4 dígitos.'})
+        
+        if not re.match(r'^\d{5,20}$', identificacion):
+            return jsonify({'success': False, 'message': 'La identificación debe ser solo números, entre 5 y 20 dígitos.'})
         
         conn = get_db_connection()
         try:
-            # Verificar si el usuario o la identificación ya existen
-            existing_user = conn.execute('SELECT * FROM usuarios WHERE username = ? OR identificacion = ?', 
-                                         (username, identificacion)).fetchone()
+            # Verificar si el usuario, la identificación o la clave dinámica ya existen
+            existing_user = conn.execute('SELECT * FROM usuarios WHERE username = ? OR identificacion = ? OR clave_dinamica = ?', 
+                                         (username, identificacion, clave_dinamica)).fetchone()
             if existing_user:
-                flash('Error: El nombre de usuario o identificación ya existe')
-                return redirect(url_for('register'))
+                if existing_user['username'] == username:
+                    return jsonify({'success': False, 'message': 'Error: El nombre de usuario ya existe'})
+                elif existing_user['identificacion'] == identificacion:
+                    return jsonify({'success': False, 'message': 'Error: La identificación ya está registrada'})
+                elif existing_user['clave_dinamica'] == clave_dinamica:
+                    return jsonify({'success': False, 'message': 'Error: La clave dinámica ya está en uso'})
             
             # Hash de la contraseña
             hashed_password = generate_password_hash(password)
@@ -138,10 +142,9 @@ def register():
             conn.execute('INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES (?, ?, ?, ?)',
                          (username, hashed_password, identificacion, clave_dinamica))
             conn.commit()
-            flash('Usuario registrado exitosamente', 'success')
-            return redirect(url_for('index'))
+            return jsonify({'success': True, 'message': 'Usuario registrado exitosamente'})
         except sqlite3.Error as e:
-            flash(f'Error al registrar el usuario: {str(e)}', 'error')
+            return jsonify({'success': False, 'message': f'Error al registrar el usuario: {str(e)}'})
         finally:
             conn.close()
     
