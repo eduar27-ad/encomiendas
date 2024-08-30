@@ -8,8 +8,11 @@
             <form id="encomiendaForm" method="POST">
                 <div class="mb-3">
                     <label for="destinatario_busqueda" class="form-label">Buscar Destinatario</label>
-                    <input type="text" class="form-control" id="destinatario_busqueda" placeholder="Buscar por nombre o identificación">
-                    <div id="resultados_busqueda" class="list-group mt-2"></div>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="destinatario_busqueda" placeholder="Buscar por nombre o identificación">
+                        <button class="btn btn-outline-secondary" type="button" id="mostrarTodos">Mostrar Todos</button>
+                    </div>
+                    <div id="resultados_busqueda" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></div>
                 </div>
                 <input type="hidden" id="destinatario_id" name="destinatario_id" required>
                 <div id="destinatario_seleccionado" class="mb-3 d-none">
@@ -33,7 +36,7 @@
     </div>
 </div>
 
-<!-- Modal de confirmación (sin cambios) -->
+<!-- Modal de confirmación -->
 <div class="modal fade" id="confirmacionModal" tabindex="-1" aria-labelledby="confirmacionModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -63,14 +66,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const destinatarioIdInput = document.getElementById('destinatario_id');
     const destinatarioSeleccionado = document.getElementById('destinatario_seleccionado');
     const nombreDestinatario = document.getElementById('nombre_destinatario');
+    const mostrarTodosBtn = document.getElementById('mostrarTodos');
 
-    busquedaInput.addEventListener('input', function() {
-        if (this.value.length < 3) {
-            resultadosBusqueda.innerHTML = '';
-            return;
-        }
-
-        fetch(`/buscar_destinatario?query=${this.value}`)
+    function realizarBusqueda(query) {
+        fetch(`/buscar_destinatario?query=${query}`)
             .then(response => response.json())
             .then(data => {
                 resultadosBusqueda.innerHTML = '';
@@ -81,16 +80,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     item.textContent = `${usuario.username} (${usuario.identificacion})`;
                     item.addEventListener('click', function(e) {
                         e.preventDefault();
-                        destinatarioIdInput.value = usuario.id;
-                        busquedaInput.value = '';
-                        resultadosBusqueda.innerHTML = '';
-                        destinatarioSeleccionado.classList.remove('d-none');
-                        nombreDestinatario.textContent = `${usuario.username} (${usuario.identificacion})`;
+                        seleccionarDestinatario(usuario);
                     });
                     resultadosBusqueda.appendChild(item);
                 });
             })
             .catch(error => console.error('Error:', error));
+    }
+
+    function seleccionarDestinatario(usuario) {
+        destinatarioIdInput.value = usuario.id;
+        busquedaInput.value = `${usuario.username} (${usuario.identificacion})`;
+        resultadosBusqueda.innerHTML = '';
+        destinatarioSeleccionado.classList.remove('d-none');
+        nombreDestinatario.textContent = `${usuario.username} (${usuario.identificacion})`;
+    }
+
+    busquedaInput.addEventListener('input', function() {
+        if (this.value.length >= 3) {
+            realizarBusqueda(this.value);
+        } else {
+            resultadosBusqueda.innerHTML = '';
+        }
+    });
+
+    mostrarTodosBtn.addEventListener('click', function() {
+        realizarBusqueda('');
     });
 
     const form = document.getElementById('encomiendaForm');

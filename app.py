@@ -25,16 +25,17 @@ def index():
 @app.route('/buscar_destinatario')
 def buscar_destinatario():
     query = request.args.get('query', '')
-    if len(query) < 3:
-        return jsonify([])
     
     conn = get_db_connection()
-    usuarios = conn.execute('''
-        SELECT id, username, identificacion 
-        FROM usuarios 
-        WHERE username LIKE ? OR identificacion LIKE ?
-        LIMIT 10
-    ''', (f'%{query}%', f'%{query}%')).fetchall()
+    if query:
+        usuarios = conn.execute('''
+            SELECT id, username, identificacion 
+            FROM usuarios 
+            WHERE username LIKE ? OR identificacion LIKE ?
+            LIMIT 10
+        ''', (f'%{query}%', f'%{query}%')).fetchall()
+    else:
+        usuarios = conn.execute('SELECT id, username, identificacion FROM usuarios LIMIT 10').fetchall()
     conn.close()
 
     return jsonify([{
@@ -42,6 +43,7 @@ def buscar_destinatario():
         'username': usuario['username'],
         'identificacion': usuario['identificacion']
     } for usuario in usuarios])
+
 
 @app.route('/consultar_encomienda', methods=['POST'])
 def consultar_encomienda():
