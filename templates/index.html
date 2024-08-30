@@ -18,9 +18,15 @@
             </div>
 
             <div class="d-flex justify-content-center mb-3">
-                <div class="me-3"><div class="estacionamiento disponible d-inline-block me-1" style="width: 15px; height: 15px;"></div>Disponible</div>
-                <div class="me-3"><div class="estacionamiento ocupado d-inline-block me-1" style="width: 15px; height: 15px;"></div>Ocupado</div>
-                <div><div class="estacionamiento fuera-de-servicio d-inline-block me-1" style="width: 15px; height: 15px;"></div>Fuera de Servicio</div>
+                <div class="me-3">
+                    <span class="badge bg-success">Disponible</span>
+                </div>
+                <div class="me-3">
+                    <span class="badge bg-warning text-dark">Ocupado</span>
+                </div>
+                <div>
+                    <span class="badge bg-danger">Fuera de servicio</span>
+                </div>
             </div>
 
             <div id="notificaciones" class="alert alert-info py-2 px-3 mb-3">
@@ -80,30 +86,31 @@
 <script>
     // Función para actualizar los estacionamientos
     function actualizarEstacionamientos() {
-        fetch('/get_updates')
-            .then(response => response.json())
-            .then(data => {
-                data.garajes.forEach(garaje => {
-                    const estacionamiento = document.querySelector(`.estacionamiento[data-id="${garaje.id}"]`);
-                    if (estacionamiento) {
-                        estacionamiento.className = `estacionamiento ${garaje.estado} p-2 text-center text-white`;
-                    }
-                });
-                actualizarLeyenda();
-            })
-            .catch(error => console.error('Error al actualizar estacionamientos:', error));
-    }
+    fetch('/get_updates')
+        .then(response => response.json())
+        .then(data => {
+            data.garajes.forEach(garaje => {
+                const estacionamiento = document.querySelector(`.estacionamiento[data-id="${garaje.id}"]`);
+                if (estacionamiento) {
+                    estacionamiento.className = `estacionamiento ${garaje.estado} p-2 text-center text-white`;
+                }
+            });
+            actualizarLeyenda();  // Llamar a la función para actualizar la leyenda
+        })
+        .catch(error => console.error('Error al actualizar estacionamientos:', error));
+}
 
     // Función para actualizar la leyenda
     function actualizarLeyenda() {
-        const disponibles = document.querySelectorAll('.estacionamiento.disponible').length;
-        const ocupados = document.querySelectorAll('.estacionamiento.ocupado').length;
-        const fueraServicio = document.querySelectorAll('.estacionamiento.fuera-de-servicio').length;
+    const disponibles = document.querySelectorAll('.estacionamiento.disponible').length;
+    const ocupados = document.querySelectorAll('.estacionamiento.ocupado').length;
+    const fueraServicio = document.querySelectorAll('.estacionamiento.fuera_de_servicio').length;
 
-        document.querySelector('.estacionamiento.disponible + span').textContent = `Disponible (${disponibles})`;
-        document.querySelector('.estacionamiento.ocupado + span').textContent = `Ocupado (${ocupados})`;
-        document.querySelector('.estacionamiento.fuera-de-servicio + span').textContent = `Fuera de Servicio (${fueraServicio})`;
-    }
+    document.querySelector('.badge.bg-success').textContent = `Disponible (${disponibles})`;
+    document.querySelector('.badge.bg-warning').textContent = `Ocupado (${ocupados})`;
+    document.querySelector('.badge.bg-danger').textContent = `Fuera de servicio (${fueraServicio})`;
+}
+
 
     // Función para mostrar mensajes en el modal
     function mostrarMensajeModal(mensaje, esError = false) {
