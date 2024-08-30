@@ -1,58 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="container-fluid px-4">
-    <h1 class="text-center my-3">Sistema de Gestión de Encomiendas</h1>
-
-    <div class="row">
+    <h1 class="text-center my-2">Sistema de Gestión de Encomiendas</h1>
+    
+    <div class="row g-2">
         <div class="col-md-8">
-            <h2 class="h4 mb-2">Estado de Estacionamientos</h2>
-            <div id="estacionamientos" class="row row-cols-5 g-2 mb-3">
-                {% for estacionamiento in estacionamientos %}
-                <div class="col">
-                    <div class="estacionamiento {{ estacionamiento.estado }} p-2 text-center text-white">
-                        {{ estacionamiento.id }}
+            <div class="card">
+                <div class="card-header py-2">
+                    <h4 class="mb-0">Estado de Estacionamientos</h4>
+                </div>
+                <div class="card-body">
+                    <div id="estacionamientos" class="row row-cols-5 g-1 mb-2">
+                        {% for estacionamiento in estacionamientos %}
+                        <div class="col">
+                            <div class="estacionamiento {{ estacionamiento.estado }} p-1 text-center text-white" data-id="{{ estacionamiento.id }}">
+                                {{ estacionamiento.id }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="d-flex justify-content-center small mb-2">
+                        <span class="badge bg-success me-1">Disponible ({{ estados_estacionamientos['disponible'] }})</span>
+                        <span class="badge bg-warning text-dark me-1">Ocupado ({{ estados_estacionamientos['ocupado'] }})</span>
+                        <span class="badge bg-danger">Fuera de servicio ({{ estados_estacionamientos['fuera_de_servicio'] }})</span>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-
-            <div class="d-flex justify-content-center mb-3">
-                <div class="me-3">
-                    <span class="badge bg-success">Disponible</span>
+            <div class="card mt-2">
+                <div class="card-header py-2">
+                    <h5 class="mb-0">Notificaciones</h5>
                 </div>
-                <div class="me-3">
-                    <span class="badge bg-warning text-dark">Ocupado</span>
+                <div id="notificaciones" class="card-body py-2">
+                    <!-- Las notificaciones se actualizarán dinámicamente aquí -->
                 </div>
-                <div>
-                    <span class="badge bg-danger">Fuera de servicio</span>
-                </div>
-            </div>
-
-            <div id="notificaciones" class="alert alert-info py-2 px-3 mb-3">
-                <h4 class="h5 mb-2">Notificaciones</h4>
-                <ul id="listaNotificaciones" class="list-unstyled mb-0">
-                    <!-- Las notificaciones se agregarán aquí dinámicamente -->
-                </ul>
             </div>
         </div>
-
         <div class="col-md-4">
-            <h3 class="h4 mb-2">Consultar Encomienda</h3>
-            <form id="consultaForm" class="mb-3">
-                <div class="mb-2">
-                    <input type="text" class="form-control form-control-sm" name="identificacion" placeholder="Identificación del Usuario" required>
+            <div class="card">
+                <div class="card-header py-2">
+                    <h4 class="mb-0">Consultar Encomienda</h4>
                 </div>
-                <div class="mb-2">
-                    <input type="text" class="form-control form-control-sm" name="clave_dinamica" placeholder="Clave Dinámica" required>
+                <div class="card-body">
+                    <form id="consultaForm">
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" name="identificacion" placeholder="Identificación del Usuario" required>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" name="clave_dinamica" placeholder="Clave Dinámica" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Consultar</button>
+                    </form>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">Consultar</button>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para mostrar resultados de la consulta -->
+<!-- Modal para mostrar resultados de consulta -->
 <div class="modal fade" id="resultadoConsultaModal" tabindex="-1" aria-labelledby="resultadoConsultaModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -66,139 +70,160 @@
                 <div id="listaEncomiendas" class="mt-3">
                     <h6 class="mb-2">Encomiendas pendientes:</h6>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="seleccionarTodas">
-                        <label class="form-check-label" for="seleccionarTodas">Seleccionar todas</label>
+                        <input class="form-check-input" type="checkbox" id="selectAllEncomiendas">
+                        <label class="form-check-label" for="selectAllEncomiendas">
+                            Seleccionar todas
+                        </label>
                     </div>
                     <div id="encomiendas-list"></div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button id="btnEntrada" class="btn btn-success">Activar Entrada</button>
+                <button type="button" class="btn btn-primary" id="btnActivarEntrada">Activar Entrada</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_css %}
+<style>
+    .estacionamiento {
+        height: 40px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        font-size: 0.9em;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .disponible { background-color: #28a745; }
+    .ocupado { background-color: #ffc107; color: #212529; }
+    .fuera_de_servicio { background-color: #dc3545; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Función para actualizar los estacionamientos
-    function actualizarEstacionamientos() {
-    fetch('/get_updates')
-        .then(response => response.json())
-        .then(data => {
-            data.garajes.forEach(garaje => {
-                const estacionamiento = document.querySelector(`.estacionamiento[data-id="${garaje.id}"]`);
-                if (estacionamiento) {
-                    estacionamiento.className = `estacionamiento ${garaje.estado} p-2 text-center text-white`;
-                }
-            });
-            actualizarLeyenda();  // Llamar a la función para actualizar la leyenda
-        })
-        .catch(error => console.error('Error al actualizar estacionamientos:', error));
-}
-
-    // Función para actualizar la leyenda
-    function actualizarLeyenda() {
-    const disponibles = document.querySelectorAll('.estacionamiento.disponible').length;
-    const ocupados = document.querySelectorAll('.estacionamiento.ocupado').length;
-    const fueraServicio = document.querySelectorAll('.estacionamiento.fuera_de_servicio').length;
-
-    document.querySelector('.badge.bg-success').textContent = `Disponible (${disponibles})`;
-    document.querySelector('.badge.bg-warning').textContent = `Ocupado (${ocupados})`;
-    document.querySelector('.badge.bg-danger').textContent = `Fuera de servicio (${fueraServicio})`;
-}
-
-
-    // Función para mostrar mensajes en el modal
-    function mostrarMensajeModal(mensaje, esError = false) {
-        const modalMessage = document.getElementById('modalMessage');
-        modalMessage.textContent = mensaje;
-        modalMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
-        modalMessage.classList.add(esError ? 'alert-danger' : 'alert-success');
+    // Función para actualizar el estado de los estacionamientos
+    function actualizarEstacionamientos(estacionamientos) {
+        const container = document.getElementById('estacionamientos');
+        container.innerHTML = '';
+        estacionamientos.forEach(estacionamiento => {
+            const div = document.createElement('div');
+            div.className = 'col';
+            div.innerHTML = `
+                <div class="estacionamiento ${estacionamiento.estado} p-1 text-center text-white" data-id="${estacionamiento.id}">
+                    ${estacionamiento.id}
+                </div>
+            `;
+            container.appendChild(div);
+        });
     }
 
-    // Event listener para el formulario de consulta de encomiendas
+    // Función para actualizar las notificaciones
+    function actualizarNotificaciones(notificaciones) {
+        const container = document.getElementById('notificaciones');
+        container.innerHTML = notificaciones.length > 0 
+            ? notificaciones.map(n => `<div class="alert alert-info py-1 mb-1">${n}</div>`).join('') 
+            : '<p class="mb-0">No hay notificaciones nuevas.</p>';
+    }
+
+    // Función para actualizar los contadores en la leyenda
+    function actualizarContadores(estados) {
+        const badges = document.querySelectorAll('.badge');
+        badges[0].textContent = `Disponible (${estados.disponible})`;
+        badges[1].textContent = `Ocupado (${estados.ocupado})`;
+        badges[2].textContent = `Fuera de servicio (${estados.fuera_de_servicio})`;
+    }
+
+    // Función para obtener actualizaciones del servidor
+    function obtenerActualizaciones() {
+        fetch('/get_updates')
+            .then(response => response.json())
+            .then(data => {
+                actualizarEstacionamientos(data.garajes);
+                actualizarNotificaciones(data.alertas.map(a => a.mensaje));
+                actualizarContadores(data.estados_estacionamientos);
+            })
+            .catch(error => console.error('Error al obtener actualizaciones:', error));
+    }
+
+    // Manejar el envío del formulario de consulta
     document.getElementById('consultaForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const formData = new FormData(this);
-        
         fetch('/consultar_encomienda', {
             method: 'POST',
             body: formData
         })
         .then(response => response.json())
         .then(data => {
+            const modal = new bootstrap.Modal(document.getElementById('resultadoConsultaModal'));
             if (data.success) {
-                document.getElementById('infoUsuario').innerHTML = `<p>Usuario: ${data.usuario}</p>`;
-                let encomiendasHTML = '<h6 class="mb-2">Encomiendas pendientes:</h6><ul class="list-group">';
-                data.encomiendas.forEach(enc => {
-                    encomiendasHTML += `
-                        <li class="list-group-item">
-                            <div class="form-check">
-                                <input class="form-check-input encomienda-check" type="checkbox" value="${enc.id}" id="enc${enc.id}">
-                                <label class="form-check-label" for="enc${enc.id}">
-                                    ${enc.descripcion} - Llegó: ${enc.fecha}
-                                </label>
-                            </div>
-                        </li>`;
-                });
-                encomiendasHTML += '</ul>';
-                document.getElementById('encomiendas-list').innerHTML = encomiendasHTML;
-                
-                new bootstrap.Modal(document.getElementById('resultadoConsultaModal')).show();
+                document.getElementById('infoUsuario').textContent = `Usuario: ${data.usuario}`;
+                const encomiendasList = document.getElementById('encomiendas-list');
+                encomiendasList.innerHTML = data.encomiendas.map(e => 
+                    `<div class="form-check">
+                        <input class="form-check-input encomienda-checkbox" type="checkbox" value="${e.id}" id="encomienda${e.id}">
+                        <label class="form-check-label" for="encomienda${e.id}">
+                            ${e.descripcion} - Llegó: ${e.fecha}
+                        </label>
+                    </div>`
+                ).join('');
+                document.getElementById('modalMessage').classList.add('d-none');
+                document.getElementById('btnActivarEntrada').disabled = false;
             } else {
-                mostrarMensajeModal(data.message, true);
+                document.getElementById('modalMessage').textContent = data.message;
+                document.getElementById('modalMessage').classList.remove('d-none');
+                document.getElementById('infoUsuario').textContent = '';
+                document.getElementById('encomiendas-list').innerHTML = '';
+                document.getElementById('btnActivarEntrada').disabled = true;
+            }
+            modal.show();
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Manejar la selección de todas las encomiendas
+    document.getElementById('selectAllEncomiendas').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.encomienda-checkbox');
+        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+    });
+
+    // Manejar la activación de entrada
+    document.getElementById('btnActivarEntrada').addEventListener('click', function() {
+        const encomiendasSeleccionadas = Array.from(document.querySelectorAll('.encomienda-checkbox:checked')).map(cb => cb.value);
+        if (encomiendasSeleccionadas.length === 0) {
+            alert('Por favor, seleccione al menos una encomienda.');
+            return;
+        }
+
+        fetch('/activar_entrada', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ encomiendas: encomiendasSeleccionadas })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Se ha asignado el estacionamiento ${data.garaje}`);
+                obtenerActualizaciones();  // Actualizar el estado de los estacionamientos
+                bootstrap.Modal.getInstance(document.getElementById('resultadoConsultaModal')).hide();
+            } else {
+                alert(data.message);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensajeModal('Ocurrió un error al procesar la solicitud.', true);
-        });
-
-        this.reset();
+        .catch(error => console.error('Error:', error));
     });
 
-    // Event listener para el botón de activar entrada
-    document.getElementById('btnEntrada').addEventListener('click', function() {
-        const encomiendas_seleccionadas = Array.from(document.querySelectorAll('.encomienda-check:checked')).map(el => el.value);
-        if (encomiendas_seleccionadas.length > 0) {
-            fetch('/activar_entrada', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({encomiendas: encomiendas_seleccionadas})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    mostrarMensajeModal(`Entrada activada. Se ha asignado el garaje ${data.garaje}.`);
-                    actualizarEstacionamientos();
-                } else {
-                    mostrarMensajeModal(data.message, true);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                mostrarMensajeModal('Ocurrió un error al activar la entrada.', true);
-            });
-        } else {
-            mostrarMensajeModal("Por favor, seleccione al menos una encomienda.", true);
-        }
-    });
-
-    // Event listener para seleccionar todas las encomiendas
-    document.getElementById('seleccionarTodas').addEventListener('change', function() {
-        document.querySelectorAll('.encomienda-check').forEach(check => {
-            check.checked = this.checked;
-        });
-    });
-
-    // Inicializar
-    actualizarEstacionamientos();
-    setInterval(actualizarEstacionamientos, 10000);  // Actualizar cada 10 segundos
+    // Iniciar actualizaciones automáticas
+    obtenerActualizaciones();
+    setInterval(obtenerActualizaciones, 30000);  // Actualizar cada 30 segundos
 </script>
 {% endblock %}
