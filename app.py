@@ -22,6 +22,27 @@ def index():
     conn.close()
     return render_template('index.html', estacionamientos=estacionamientos)
 
+@app.route('/buscar_destinatario')
+def buscar_destinatario():
+    query = request.args.get('query', '')
+    if len(query) < 3:
+        return jsonify([])
+    
+    conn = get_db_connection()
+    usuarios = conn.execute('''
+        SELECT id, username, identificacion 
+        FROM usuarios 
+        WHERE username LIKE ? OR identificacion LIKE ?
+        LIMIT 10
+    ''', (f'%{query}%', f'%{query}%')).fetchall()
+    conn.close()
+
+    return jsonify([{
+        'id': usuario['id'],
+        'username': usuario['username'],
+        'identificacion': usuario['identificacion']
+    } for usuario in usuarios])
+
 @app.route('/consultar_encomienda', methods=['POST'])
 def consultar_encomienda():
     """Maneja la consulta de encomiendas para un usuario."""
@@ -156,19 +177,39 @@ def encomienda():
     if request.method == 'POST':
         destinatario_id = request.form['destinatario_id']
         descripcion = request.form['descripcion']
+        peso = request.form['peso']
+        dimensiones = request.form.get('dimensiones', '')  # Campo opcional
+        fecha_llegada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         conn = get_db_connection()
         try:
-            conn.execute('INSERT INTO encomiendas (destinatario_id, descripcion) VALUES (?, ?)',
-                         (destinatario_id, descripcion))
+            # Insertar la nueva encomienda
+            cursor = conn.execute('''
+                INSERT INTO encomiendas (destinatario_id, descripcion, peso, dimensiones, fecha)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (destinatario_id, descripcion, peso, dimensiones, fecha_llegada))
+            
+            # Obtener el nombre del destinatario
+            destinatario = conn.execute('SELECT username FROM usuarios WHERE id = ?', (destinatario_id,)).fetchone()
+            
             conn.commit()
-            flash('Encomienda registrada exitosamente')
-            return redirect(url_for('dashboard'))
+            
+            return jsonify({
+                'success': True,
+                'message': 'Encomienda registrada exitosamente',
+                'destinatario': destinatario['username'],
+                'descripcion': descripcion,
+                'fecha': fecha_llegada
+            })
         except sqlite3.Error as e:
-            flash(f'Error al registrar la encomienda: {str(e)}')
+            conn.rollback()
+            return jsonify({'success': False, 'message': f'Error al registrar la encomienda: {str(e)}'})
         finally:
             conn.close()
+    
+    # Si es una solicitud GET, obtener la lista de usuarios para el formulario
     conn = get_db_connection()
-    usuarios = conn.execute('SELECT id, username FROM usuarios').fetchall()
+    usuarios = conn.execute('SELECT id, username, identificacion FROM usuarios').fetchall()
     conn.close()
     return render_template('encomienda.html', usuarios=usuarios)
 

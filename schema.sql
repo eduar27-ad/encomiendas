@@ -17,7 +17,9 @@ CREATE TABLE usuarios (
 CREATE TABLE encomiendas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     destinatario_id INTEGER NOT NULL,
-    descripcion TEXT,
+    descripcion TEXT NOT NULL,
+    peso REAL NOT NULL,
+    dimensiones TEXT,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_entrega TIMESTAMP,
     FOREIGN KEY (destinatario_id) REFERENCES usuarios (id)
@@ -47,7 +49,7 @@ INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES
 ('Moises Guzman Tovar', '2704', '1003309107', '1234');
 
 -- Inserta encomiendas de ejemplo
-INSERT INTO encomiendas (destinatario_id, descripcion) VALUES
-(1, 'Paquete grande'),
-(1, 'Sobre urgente'),
-(2, 'Caja mediana');
+INSERT INTO encomiendas (destinatario_id, descripcion, peso) VALUES
+(1, 'Paquete grande', 5.0),
+(1, 'Sobre urgente', 0.5),
+(2, 'Caja mediana', 3.0);

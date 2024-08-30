@@ -1,23 +1,133 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-center mb-4">Registrar Nueva Encomienda</h1>
-<div class="row">
-    <div class="col-md-6 offset-md-3">
-        <form method="post">
-            <div class="mb-3">
-                <label for="destinatario_id" class="form-label">Destinatario</label>
-                <select class="form-select" id="destinatario_id" name="destinatario_id" required>
-                    {% for usuario in usuarios %}
-                    <option value="{{ usuario['id'] }}">{{ usuario['username'] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="descripcion" class="form-label">Descripción</label>
-                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Registrar Encomienda</button>
-        </form>
+<div class="container">
+    <h1 class="text-center mb-4">Registrar Nueva Encomienda</h1>
+    
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <form id="encomiendaForm" method="POST">
+                <div class="mb-3">
+                    <label for="destinatario_busqueda" class="form-label">Buscar Destinatario</label>
+                    <input type="text" class="form-control" id="destinatario_busqueda" placeholder="Buscar por nombre o identificación">
+                    <div id="resultados_busqueda" class="list-group mt-2"></div>
+                </div>
+                <input type="hidden" id="destinatario_id" name="destinatario_id" required>
+                <div id="destinatario_seleccionado" class="mb-3 d-none">
+                    <strong>Destinatario seleccionado:</strong> <span id="nombre_destinatario"></span>
+                </div>
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="descripcion" name="descripcion" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="peso" class="form-label">Peso (kg)</label>
+                    <input type="number" class="form-control" id="peso" name="peso" step="0.01" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dimensiones" class="form-label">Dimensiones (opcional)</label>
+                    <input type="text" class="form-control" id="dimensiones" name="dimensiones" placeholder="Ej: 30x20x15 cm">
+                </div>
+                <button type="submit" class="btn btn-primary">Registrar Encomienda</button>
+            </form>
+        </div>
     </div>
 </div>
+
+<!-- Modal de confirmación (sin cambios) -->
+<div class="modal fade" id="confirmacionModal" tabindex="-1" aria-labelledby="confirmacionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmacionModalLabel">Encomienda Registrada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>La encomienda ha sido registrada exitosamente.</p>
+                <p><strong>Destinatario:</strong> <span id="modalDestinatario"></span></p>
+                <p><strong>Descripción:</strong> <span id="modalDescripcion"></span></p>
+                <p><strong>Fecha de llegada:</strong> <span id="modalFecha"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const busquedaInput = document.getElementById('destinatario_busqueda');
+    const resultadosBusqueda = document.getElementById('resultados_busqueda');
+    const destinatarioIdInput = document.getElementById('destinatario_id');
+    const destinatarioSeleccionado = document.getElementById('destinatario_seleccionado');
+    const nombreDestinatario = document.getElementById('nombre_destinatario');
+
+    busquedaInput.addEventListener('input', function() {
+        if (this.value.length < 3) {
+            resultadosBusqueda.innerHTML = '';
+            return;
+        }
+
+        fetch(`/buscar_destinatario?query=${this.value}`)
+            .then(response => response.json())
+            .then(data => {
+                resultadosBusqueda.innerHTML = '';
+                data.forEach(usuario => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = `${usuario.username} (${usuario.identificacion})`;
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        destinatarioIdInput.value = usuario.id;
+                        busquedaInput.value = '';
+                        resultadosBusqueda.innerHTML = '';
+                        destinatarioSeleccionado.classList.remove('d-none');
+                        nombreDestinatario.textContent = `${usuario.username} (${usuario.identificacion})`;
+                    });
+                    resultadosBusqueda.appendChild(item);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
+    const form = document.getElementById('encomiendaForm');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        if (!destinatarioIdInput.value) {
+            alert('Por favor, seleccione un destinatario.');
+            return;
+        }
+
+        const formData = new FormData(this);
+        
+        fetch('/encomienda', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('modalDestinatario').textContent = data.destinatario;
+                document.getElementById('modalDescripcion').textContent = data.descripcion;
+                document.getElementById('modalFecha').textContent = data.fecha;
+                
+                new bootstrap.Modal(document.getElementById('confirmacionModal')).show();
+                
+                form.reset();
+                destinatarioSeleccionado.classList.add('d-none');
+            } else {
+                alert(data.message || 'Hubo un error al registrar la encomienda.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Hubo un error al procesar la solicitud. Por favor, intente de nuevo más tarde.');
+        });
+    });
+});
+</script>
 {% endblock %}
