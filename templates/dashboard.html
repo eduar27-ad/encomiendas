@@ -1,103 +1,109 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-center mb-4">Dashboard</h1>
+<div class="container-fluid px-4">
+    <h1 class="text-center my-3">Dashboard de Gestión</h1>
 
-<div id="loadingIndicator" class="alert alert-info" style="display: none;">
-    Cargando datos...
-</div>
+    <div id="loadingIndicator" class="alert alert-info" style="display: none;">
+        Cargando datos...
+    </div>
 
-<div id="errorMessage" class="alert alert-danger" style="display: none;">
-</div>
+    <div id="errorMessage" class="alert alert-danger" style="display: none;">
+    </div>
 
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="h5 mb-0">Mapa de Estacionamientos</h2>
-            </div>
-            <div class="card-body">
-                <div id="mapaEstacionamientos" class="row row-cols-5 g-2">
-                    {% for garaje in garajes %}
-                    <div class="col">
-                        <div class="estacionamiento {{ garaje['estado'] }} p-2 text-center text-white" data-id="{{ garaje['id'] }}">
-                            {{ garaje['id'] }}
+    <!-- Fila principal con dos columnas -->
+    <div class="row mb-4">
+        <!-- Columna izquierda: Mapa de Estacionamientos -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Mapa de Estacionamientos</h2>
+                </div>
+                <div class="card-body">
+                    <div id="mapaEstacionamientos" class="row row-cols-5 g-2">
+                        {% for garaje in garajes %}
+                        <div class="col">
+                            <div class="estacionamiento {{ garaje['estado'] }} p-2 text-center text-white" data-id="{{ garaje['id'] }}">
+                                {{ garaje['id'] }}
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    <div class="mt-3">
+                        <span class="badge bg-success">Disponible</span>
+                        <span class="badge bg-warning text-dark">Ocupado</span>
+                        <span class="badge bg-danger">Fuera de servicio</span>
+                    </div>
                 </div>
-                <div class="mt-3">
-                    <span class="badge bg-success">Disponible</span>
-                    <span class="badge bg-warning text-dark">Ocupado</span>
-                    <span class="badge bg-danger">Fuera de servicio</span>
+            </div>
+        </div>
+        <!-- Columna derecha: Gráfico de Distribución de Estados -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Distribución de Estados</h2>
+                </div>
+                <div class="card-body">
+                    <canvas id="estadosChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="h5 mb-0">Distribución de Estados</h2>
-            </div>
-            <div class="card-body">
-                <canvas id="estadosChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="h5 mb-0">Conteo de Estados</h2>
-            </div>
-            <div class="card-body">
-                <ul class="list-group" id="conteo-estados">
-                {% for estado, cantidad in estados_estacionamientos.items() %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ estado | capitalize }}
-                        <span class="badge bg-{{ 'success' if estado == 'disponible' else 'warning' if estado == 'ocupado' else 'danger' }} rounded-pill">{{ cantidad }}</span>
-                    </li>
-                {% endfor %}
-                </ul>
+    <!-- Fila de Conteo de Estados -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Conteo de Estados</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group" id="conteo-estados">
+                    {% for estado, cantidad in estados_estacionamientos.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ estado | capitalize }}
+                            <span class="badge bg-{{ 'success' if estado == 'disponible' else 'warning' if estado == 'ocupado' else 'danger' }} rounded-pill">{{ cantidad }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="h5 mb-0">Últimas Alertas</h2>
-                <span class="badge bg-danger" id="alertas-no-leidas">0</span>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="filtroTipoAlerta" class="form-label">Tipo de Alerta:</label>
-                    <select class="form-select" id="filtroTipoAlerta">
-                        <option value="todas">Todas</option>
-                        <option value="error">Error</option>
-                        <option value="advertencia">Advertencia</option>
-                        <option value="info">Información</option>
-                    </select>
+    <!-- Fila de Últimas Alertas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">Últimas Alertas</h2>
+                    <span class="badge bg-danger" id="alertas-no-leidas">0</span>
                 </div>
-                <div class="mb-3">
-                    <label for="filtroFechaAlerta" class="form-label">Fecha:</label>
-                    <input type="date" class="form-control" id="filtroFechaAlerta">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="filtroTipoAlerta" class="form-label">Tipo de Alerta:</label>
+                        <select class="form-select" id="filtroTipoAlerta">
+                            <option value="todas">Todas</option>
+                            <option value="error">Error</option>
+                            <option value="advertencia">Advertencia</option>
+                            <option value="info">Información</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroFechaAlerta" class="form-label">Fecha:</label>
+                        <input type="date" class="form-control" id="filtroFechaAlerta">
+                    </div>
+                    <ul class="list-group" id="lista-alertas">
+                        {% for alerta in alertas %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="{{ alerta['tipo'] }}" data-fecha="{{ alerta['fecha'] }}">
+                            <span>
+                                <strong>{{ alerta['fecha'] }}:</strong> {{ alerta['mensaje'] }}
+                            </span>
+                            <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="{{ alerta['id'] }}">Marcar como leída</button>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </div>
-                <ul class="list-group" id="lista-alertas">
-                    {% for alerta in alertas %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="{{ alerta['tipo'] }}" data-fecha="{{ alerta['fecha'] }}">
-                        <span>
-                            <strong>{{ alerta['fecha'] }}:</strong> {{ alerta['mensaje'] }}
-                        </span>
-                        <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="{{ alerta['id'] }}">Marcar como leída</button>
-                    </li>
-                    {% endfor %}
-                </ul>
             </div>
         </div>
     </div>
@@ -183,15 +189,15 @@
 
     // Función para actualizar el estado de un estacionamiento
     function actualizarEstacionamiento(id, nuevoEstado) {
-    const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
-    if (estacionamiento && estacionamiento.classList[1] !== nuevoEstado) {
-        estacionamiento.className = `estacionamiento ${nuevoEstado} p-2 text-center text-white`;
-        
-        // Actualizar el conteo y el gráfico solo si ha habido un cambio
-        actualizarConteoEstados();
-        actualizarGrafico();
+        const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
+        if (estacionamiento && estacionamiento.classList[1] !== nuevoEstado) {
+            estacionamiento.className = `estacionamiento ${nuevoEstado} p-2 text-center text-white`;
+            
+            // Actualizar el conteo y el gráfico solo si ha habido un cambio
+            actualizarConteoEstados();
+            actualizarGrafico();
+        }
     }
-}
 
     // Función para actualizar el conteo de estados
     function actualizarConteoEstados() {
@@ -272,38 +278,6 @@
         document.getElementById('alertas-no-leidas').textContent = alertasNoLeidas;
     }
 
-    // Función para obtener actualizaciones del servidor
-    function obtenerActualizaciones() {
-    mostrarCargando();
-    fetch('/get_updates')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Actualizar el mapa de estacionamientos
-            data.garajes.forEach(garaje => {
-                actualizarEstacionamiento(garaje.id, garaje.estado);
-            });
-
-            // Actualizar las alertas
-            actualizarAlertas(data.alertas);
-
-            // Actualizar el conteo de estados y el gráfico
-            actualizarConteoEstados(data.estados_estacionamientos);
-            actualizarGrafico(data.estados_estacionamientos);
-        })
-        .catch(error => {
-            console.error('Error al obtener actualizaciones:', error);
-            mostrarError('Hubo un problema al actualizar los datos. Por favor, intente de nuevo más tarde.');
-        })
-        .finally(() => {
-            ocultarCargando();
-        });
-}
-    // Función para obtener actualizaciones del servidor
     function obtenerActualizaciones() {
         mostrarCargando();
         fetch('/get_updates')
@@ -350,26 +324,26 @@
 
     // Función para mostrar detalles del estacionamiento
     function mostrarDetallesEstacionamiento(detalles) {
-    document.getElementById('estacionamientoId').textContent = detalles.id;
-    document.getElementById('estacionamientoEstado').textContent = detalles.estado;
-    document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
-    
-    const infoOcupado = document.getElementById('infoOcupado');
-    const btnLiberar = document.getElementById('btnLiberar');
-    const btnCambiarEstado = document.getElementById('btnCambiarEstado');
+        document.getElementById('estacionamientoId').textContent = detalles.id;
+        document.getElementById('estacionamientoEstado').textContent = detalles.estado;
+        document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
+        
+        const infoOcupado = document.getElementById('infoOcupado');
+        const btnLiberar = document.getElementById('btnLiberar');
+        const btnCambiarEstado = document.getElementById('btnCambiarEstado');
 
-    if (detalles.estado === 'fuera_de_servicio') {
-        btnCambiarEstado.textContent = 'Poner en Servicio';
-        btnCambiarEstado.classList.remove('btn-danger');
-        btnCambiarEstado.classList.add('btn-success');
-    } else {
-        btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
-        btnCambiarEstado.classList.remove('btn-success');
-        btnCambiarEstado.classList.add('btn-danger');
+        if (detalles.estado === 'fuera_de_servicio') {
+            btnCambiarEstado.textContent = 'Poner en Servicio';
+            btnCambiarEstado.classList.remove('btn-danger');
+            btnCambiarEstado.classList.add('btn-success');
+        } else {
+            btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
+            btnCambiarEstado.classList.remove('btn-success');
+            btnCambiarEstado.classList.add('btn-danger');
+        }
+
+        new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
     }
-
-    new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
-}
 
     // Event listener para el botón de liberar
     document.getElementById('btnLiberar').addEventListener('click', () => {
@@ -402,45 +376,46 @@
 
     // Event listener para el botón de poner fuera de servicio
     document.getElementById('btnCambiarEstado').addEventListener('click', () => {
-    const id = document.getElementById('estacionamientoId').textContent;
-    const estadoActual = document.getElementById('estacionamientoEstado').textContent;
-    const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
-    
-    mostrarCargando();
-    fetch('/actualizar_estacionamiento', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({id: id, estado: nuevoEstado})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            actualizarEstacionamiento(id, nuevoEstado);
-            const btn = document.getElementById('btnCambiarEstado');
-            if (nuevoEstado === 'fuera_de_servicio') {
-                btn.textContent = 'Poner en Servicio';
-                btn.classList.remove('btn-danger');
-                btn.classList.add('btn-success');
+        const id = document.getElementById('estacionamientoId').textContent;
+        const estadoActual = document.getElementById('estacionamientoEstado').textContent;
+        const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
+        
+        mostrarCargando();
+        fetch('/actualizar_estacionamiento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id, estado: nuevoEstado})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                actualizarEstacionamiento(id, nuevoEstado);
+                const btn = document.getElementById('btnCambiarEstado');
+                if (nuevoEstado === 'fuera_de_servicio') {
+                    btn.textContent = 'Poner en Servicio';
+                    btn.classList.remove('btn-danger');
+                    btn.classList.add('btn-success');
+                } else {
+                    btn.textContent = 'Poner Fuera de Servicio';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-danger');
+                }
+                document.getElementById('estacionamientoEstado').textContent = nuevoEstado;
             } else {
-                btn.textContent = 'Poner Fuera de Servicio';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-danger');
+                throw new Error(`No se pudo cambiar el estado del estacionamiento a ${nuevoEstado}`);
             }
-            document.getElementById('estacionamientoEstado').textContent = nuevoEstado;
-        } else {
-            throw new Error(`No se pudo cambiar el estado del estacionamiento a ${nuevoEstado}`);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarError(`No se pudo actualizar el estado del estacionamiento. Por favor, intente de nuevo.`);
-    })
-    .finally(() => {
-        ocultarCargando();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarError(`No se pudo actualizar el estado del estacionamiento. Por favor, intente de nuevo.`);
+        })
+        .finally(() => {
+            ocultarCargando();
+        });
     });
-});
+
     // Inicializar las actualizaciones
     obtenerActualizaciones();
     setInterval(obtenerActualizaciones, 10000);  // Actualizar cada 10 segundos
