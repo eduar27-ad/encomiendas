@@ -1,47 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="container-fluid px-4">
-    <h1 class="text-center my-3">Dashboard de Gestión</h1>
-
-    <div id="loadingIndicator" class="alert alert-info" style="display: none;">
-        Cargando datos...
-    </div>
-
-    <div id="errorMessage" class="alert alert-danger" style="display: none;">
-    </div>
-
-    <!-- Fila principal con dos columnas -->
-    <div class="row mb-4">
-        <!-- Columna izquierda: Mapa de Estacionamientos -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">Mapa de Estacionamientos</h2>
+    <h1 class="text-center my-2">Dashboard de Gestión</h1>
+    
+    <div class="row g-2">
+        <!-- Mapa de Estacionamientos -->
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <h5 class="mb-0">Estado de Estacionamientos</h5>
                 </div>
                 <div class="card-body">
-                    <div id="mapaEstacionamientos" class="row row-cols-5 g-2">
+                    <div id="mapaEstacionamientos" class="row row-cols-5 g-1 mb-2">
                         {% for garaje in garajes %}
                         <div class="col">
-                            <div class="estacionamiento {{ garaje['estado'] }} p-2 text-center text-white" data-id="{{ garaje['id'] }}">
+                            <div class="estacionamiento {{ garaje['estado'] }} p-1 text-center text-white" data-id="{{ garaje['id'] }}">
                                 {{ garaje['id'] }}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                    <div class="mt-3">
-                        <span class="badge bg-success">Disponible</span>
-                        <span class="badge bg-warning text-dark">Ocupado</span>
-                        <span class="badge bg-danger">Fuera de servicio</span>
+                    <div class="d-flex justify-content-center small">
+                        <span class="badge bg-success me-1">Disponible ({{ estados_estacionamientos['disponible'] }})</span>
+                        <span class="badge bg-warning text-dark me-1">Ocupado ({{ estados_estacionamientos['ocupado'] }})</span>
+                        <span class="badge bg-danger">Fuera de servicio ({{ estados_estacionamientos['fuera_de_servicio'] }})</span>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Columna derecha: Gráfico de Distribución de Estados -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">Distribución de Estados</h2>
+        
+        <!-- Gráfico de Distribución -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <h5 class="mb-0">Distribución de Estados</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="estadosChart"></canvas>
@@ -50,56 +42,38 @@
         </div>
     </div>
 
-    <!-- Fila de Conteo de Estados -->
-    <div class="row mb-4">
+    <!-- Últimas Alertas -->
+    <div class="row mt-2">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">Conteo de Estados</h2>
-                </div>
-                <div class="card-body">
-                    <ul class="list-group" id="conteo-estados">
-                    {% for estado, cantidad in estados_estacionamientos.items() %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ estado | capitalize }}
-                            <span class="badge bg-{{ 'success' if estado == 'disponible' else 'warning' if estado == 'ocupado' else 'danger' }} rounded-pill">{{ cantidad }}</span>
-                        </li>
-                    {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Fila de Últimas Alertas -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0">Últimas Alertas</h2>
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Últimas Alertas</h5>
                     <span class="badge bg-danger" id="alertas-no-leidas">0</span>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="filtroTipoAlerta" class="form-label">Tipo de Alerta:</label>
-                        <select class="form-select" id="filtroTipoAlerta">
-                            <option value="todas">Todas</option>
-                            <option value="error">Error</option>
-                            <option value="advertencia">Advertencia</option>
-                            <option value="info">Información</option>
-                        </select>
+                <div class="card-body py-2">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <select class="form-select form-select-sm" id="filtroTipoAlerta">
+                                <option value="todas">Todas las alertas</option>
+                                <option value="error">Error</option>
+                                <option value="advertencia">Advertencia</option>
+                                <option value="info">Información</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="date" class="form-control form-control-sm" id="filtroFechaAlerta">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-sm btn-outline-secondary w-100">Aplicar filtros</button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="filtroFechaAlerta" class="form-label">Fecha:</label>
-                        <input type="date" class="form-control" id="filtroFechaAlerta">
-                    </div>
-                    <ul class="list-group" id="lista-alertas">
+                    <ul class="list-group list-group-flush small" id="lista-alertas" style="max-height: 200px; overflow-y: auto;">
                         {% for alerta in alertas %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="{{ alerta['tipo'] }}" data-fecha="{{ alerta['fecha'] }}">
+                        <li class="list-group-item py-1 d-flex justify-content-between align-items-center" data-tipo="{{ alerta['tipo'] }}" data-fecha="{{ alerta['fecha'] }}">
                             <span>
                                 <strong>{{ alerta['fecha'] }}:</strong> {{ alerta['mensaje'] }}
                             </span>
-                            <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="{{ alerta['id'] }}">Marcar como leída</button>
+                            <button class="btn btn-sm btn-outline-secondary btn-sm marcar-leida" data-id="{{ alerta['id'] }}">Marcar leída</button>
                         </li>
                         {% endfor %}
                     </ul>
@@ -133,18 +107,17 @@
         </div>
       </div>
     </div>
-  </div>
-
+</div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
     .estacionamiento {
-        height: 60px;
+        height: 40px;
         border-radius: 4px;
         border: 1px solid #ddd;
         cursor: pointer;
-        font-size: 1.2em;
+        font-size: 0.9em;
         font-weight: bold;
         display: flex;
         align-items: center;
@@ -165,7 +138,7 @@
     // Configuración del gráfico circular
     const ctx = document.getElementById('estadosChart').getContext('2d');
     const estadosChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: ['Disponible', 'Ocupado', 'Fuera de servicio'],
             datasets: [{
@@ -179,19 +152,29 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        }
+                    }
                 }
             }
         }
     });
 
+    // Ajustar el tamaño del contenedor del gráfico
+    document.getElementById('estadosChart').parentElement.style.height = '200px';
+
     // Función para actualizar el estado de un estacionamiento
     function actualizarEstacionamiento(id, nuevoEstado) {
         const estacionamiento = document.querySelector(`.estacionamiento[data-id="${id}"]`);
         if (estacionamiento && estacionamiento.classList[1] !== nuevoEstado) {
-            estacionamiento.className = `estacionamiento ${nuevoEstado} p-2 text-center text-white`;
+            estacionamiento.className = `estacionamiento ${nuevoEstado} p-1 text-center text-white`;
             
             // Actualizar el conteo y el gráfico solo si ha habido un cambio
             actualizarConteoEstados();
@@ -207,16 +190,10 @@
             fuera_de_servicio: document.querySelectorAll('.estacionamiento.fuera_de_servicio').length
         };
         
-        const conteoList = document.getElementById('conteo-estados');
-        conteoList.innerHTML = '';
-        for (const [estado, cantidad] of Object.entries(conteoEstados)) {
-            conteoList.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    ${estado.charAt(0).toUpperCase() + estado.slice(1)}
-                    <span class="badge bg-${estado === 'disponible' ? 'success' : estado === 'ocupado' ? 'warning' : 'danger'} rounded-pill">${cantidad}</span>
-                </li>
-            `;
-        }
+        const badges = document.querySelectorAll('.badge');
+        badges[0].textContent = `Disponible (${conteoEstados.disponible})`;
+        badges[1].textContent = `Ocupado (${conteoEstados.ocupado})`;
+        badges[2].textContent = `Fuera de servicio (${conteoEstados.fuera_de_servicio})`;
     }
 
     // Función para actualizar el gráfico
@@ -237,22 +214,17 @@
 
     // Función para mostrar el indicador de carga
     function mostrarCargando() {
-        document.getElementById('loadingIndicator').style.display = 'block';
+        // Implementar lógica para mostrar un indicador de carga
     }
 
     // Función para ocultar el indicador de carga
     function ocultarCargando() {
-        document.getElementById('loadingIndicator').style.display = 'none';
+        // Implementar lógica para ocultar el indicador de carga
     }
 
     // Función para mostrar mensajes de error
     function mostrarError(mensaje) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.textContent = mensaje;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 5000);  // El mensaje de error desaparecerá después de 5 segundos
+        alert(mensaje); // Implementar una mejor forma de mostrar errores
     }
 
     // Función para actualizar alertas
@@ -261,11 +233,11 @@
         listaAlertas.innerHTML = '';
         alertas.forEach(alerta => {
             listaAlertas.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-tipo="${alerta.tipo}" data-fecha="${alerta.fecha}">
+                <li class="list-group-item py-1 d-flex justify-content-between align-items-center" data-tipo="${alerta.tipo}" data-fecha="${alerta.fecha}">
                     <span>
                         <strong>${alerta.fecha}:</strong> ${alerta.mensaje}
                     </span>
-                    <button class="btn btn-sm btn-outline-secondary marcar-leida" data-id="${alerta.id}">Marcar como leída</button>
+                    <button class="btn btn-sm btn-outline-secondary btn-sm marcar-leida" data-id="${alerta.id}">Marcar leída</button>
                 </li>
             `;
         });
@@ -278,6 +250,7 @@
         document.getElementById('alertas-no-leidas').textContent = alertasNoLeidas;
     }
 
+    // Función para obtener actualizaciones del servidor
     function obtenerActualizaciones() {
         mostrarCargando();
         fetch('/get_updates')
@@ -332,6 +305,16 @@
         const btnLiberar = document.getElementById('btnLiberar');
         const btnCambiarEstado = document.getElementById('btnCambiarEstado');
 
+        if (detalles.estado === 'ocupado') {
+            infoOcupado.style.display = 'block';
+            document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
+            document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
+            btnLiberar.style.display = 'inline-block';
+        } else {
+            infoOcupado.style.display = 'none';
+            btnLiberar.style.display = 'none';
+        }
+
         if (detalles.estado === 'fuera_de_servicio') {
             btnCambiarEstado.textContent = 'Poner en Servicio';
             btnCambiarEstado.classList.remove('btn-danger');
@@ -348,6 +331,19 @@
     // Event listener para el botón de liberar
     document.getElementById('btnLiberar').addEventListener('click', () => {
         const id = document.getElementById('estacionamientoId').textContent;
+        liberarEstacionamiento(id);
+    });
+
+    // Event listener para el botón de cambiar estado
+    document.getElementById('btnCambiarEstado').addEventListener('click', () => {
+        const id = document.getElementById('estacionamientoId').textContent;
+        const estadoActual = document.getElementById('estacionamientoEstado').textContent;
+        const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
+        cambiarEstadoEstacionamiento(id, nuevoEstado);
+    });
+
+    // Función para liberar un estacionamiento
+    function liberarEstacionamiento(id) {
         mostrarCargando();
         fetch('/actualizar_estacionamiento', {
             method: 'POST',
@@ -372,14 +368,10 @@
         .finally(() => {
             ocultarCargando();
         });
-    });
+    }
 
-    // Event listener para el botón de poner fuera de servicio
-    document.getElementById('btnCambiarEstado').addEventListener('click', () => {
-        const id = document.getElementById('estacionamientoId').textContent;
-        const estadoActual = document.getElementById('estacionamientoEstado').textContent;
-        const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
-        
+    // Función para cambiar el estado de un estacionamiento
+    function cambiarEstadoEstacionamiento(id, nuevoEstado) {
         mostrarCargando();
         fetch('/actualizar_estacionamiento', {
             method: 'POST',
@@ -414,7 +406,7 @@
         .finally(() => {
             ocultarCargando();
         });
-    });
+    }
 
     // Inicializar las actualizaciones
     obtenerActualizaciones();
