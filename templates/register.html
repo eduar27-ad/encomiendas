@@ -1,153 +1,181 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="container">
-    <h1 class="text-center mb-4">Registro de Usuario</h1>
-    
+    <h1 id="registro-de-usuario" class="text-center mb-4">Registro de Usuario</h1>
+
     <div class="row">
         <div class="col-md-6 offset-md-3">
-            <form id="registerForm" method="POST">
+            <form id="registrationForm">
                 <div class="mb-3">
-                    <label for="username" class="form-label">Nombre de usuario</label>
-                    <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="50">
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Nombre de usuario" required>
                 </div>
+
                 <div class="mb-3">
-                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Correo electrónico" required>
+                </div>
+
+                <div class="mb-3">
                     <div class="input-group">
-                        <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
                         <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
                     <div id="passwordFeedback" class="form-text"></div>
                 </div>
+
                 <div class="mb-3">
-                    <label for="confirm_password" class="form-label">Confirmar Contraseña</label>
                     <div class="input-group">
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Confirmar Contraseña" required>
                         <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
                     <div id="confirmPasswordFeedback" class="form-text"></div>
                 </div>
+
                 <div class="mb-3">
-                    <label for="identificacion" class="form-label">Identificación</label>
-                    <input type="text" class="form-control" id="identificacion" name="identificacion" required>
+                    <input type="text" class="form-control" id="identificacion" name="identificacion" placeholder="Identificación" required>
                 </div>
+
                 <div class="mb-3">
-                    <label for="clave_dinamica" class="form-label">Clave Dinámica</label>
-                    <input type="text" class="form-control" id="clave_dinamica" name="clave_dinamica" required minlength="4" maxlength="4" pattern="\d{4}">
+                    <input type="text" class="form-control" id="claveDinamica" name="clave_dinamica" placeholder="Clave Dinámica" required>
                     <div id="claveDinamicaFeedback" class="form-text"></div>
                 </div>
-                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Registrarse</button>
+
+                <button type="submit" class="btn btn-primary w-100">Registrarse</button>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Modal para mostrar el resultado del registro -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resultModalLabel">Resultado del Registro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalMessage">
+                <!-- El mensaje se insertará aquí dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 <style>
-    .password-mismatch {
-        border-color: #dc3545;
-    }
-    .password-mismatch:focus {
-        border-color: #dc3545;
-        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
-    }
+    /* Estilos adicionales si los hubiera */
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const passwordInput = document.getElementById('password');
-    const confirmPasswordInput = document.getElementById('confirm_password');
-    const togglePassword = document.getElementById('togglePassword');
-    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const form = document.getElementById('registrationForm');
+    const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+    const modalMessage = document.getElementById('modalMessage');
+
+    // Función para alternar la visibilidad de la contraseña
+    function togglePasswordVisibility(inputId, buttonId) {
+        const input = document.getElementById(inputId);
+        const button = document.getElementById(buttonId);
+        button.addEventListener('click', function() {
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.innerHTML = '<i class="bi bi-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                button.innerHTML = '<i class="bi bi-eye"></i>';
+            }
+        });
+    }
+
+    // Configurar los botones para mostrar/ocultar contraseñas
+    togglePasswordVisibility('password', 'togglePassword');
+    togglePasswordVisibility('confirmPassword', 'toggleConfirmPassword');
+
+    // Validación en tiempo real
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirmPassword');
     const passwordFeedback = document.getElementById('passwordFeedback');
     const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
-    const submitBtn = document.getElementById('submitBtn');
-    const claveDinamicaInput = document.getElementById('clave_dinamica');
+    const claveDinamica = document.getElementById('claveDinamica');
     const claveDinamicaFeedback = document.getElementById('claveDinamicaFeedback');
 
-    function validateClaveDinamica() {
-        const claveDinamica = claveDinamicaInput.value;
-        const claveDinamicaRegex = /^\d{4}$/;
-        
-        if (!claveDinamicaRegex.test(claveDinamica)) {
-            claveDinamicaFeedback.textContent = 'La clave dinámica debe ser exactamente 4 dígitos.';
-            claveDinamicaFeedback.className = 'form-text text-danger';
-            submitBtn.disabled = true;
-        } else {
-            claveDinamicaFeedback.textContent = '';
-            if (passwordInput.value === confirmPasswordInput.value && passwordRegex.test(passwordInput.value)) {
-                submitBtn.disabled = false;
-            }
-        }
-    }
-
-    claveDinamicaInput.addEventListener('input', validateClaveDinamica);
-
-    function validateForm() {
-        validatePassword();
-        validateClaveDinamica();
-    }
-
-    passwordInput.addEventListener('input', validateForm);
-    confirmPasswordInput.addEventListener('input', validateForm);
-    claveDinamicaInput.addEventListener('input', validateForm);
-
-    function togglePasswordVisibility(input, button) {
-        if (input.type === 'password') {
-            input.type = 'text';
-            button.innerHTML = '<i class="bi bi-eye-slash"></i>';
-        } else {
-            input.type = 'password';
-            button.innerHTML = '<i class="bi bi-eye"></i>';
-        }
-    }
-
-    togglePassword.addEventListener('click', () => togglePasswordVisibility(passwordInput, togglePassword));
-    toggleConfirmPassword.addEventListener('click', () => togglePasswordVisibility(confirmPasswordInput, toggleConfirmPassword));
+    password.addEventListener('input', validatePassword);
+    confirmPassword.addEventListener('input', validateConfirmPassword);
+    claveDinamica.addEventListener('input', validateClaveDinamica);
 
     function validatePassword() {
-        const password = passwordInput.value;
-        const confirmPassword = confirmPasswordInput.value;
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
-        
-        if (!passwordRegex.test(password)) {
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+        if (regex.test(password.value)) {
+            passwordFeedback.textContent = 'Contraseña válida';
+            passwordFeedback.className = 'form-text text-success';
+        } else {
             passwordFeedback.textContent = 'La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.';
             passwordFeedback.className = 'form-text text-danger';
-            submitBtn.disabled = true;
-        } else {
-            passwordFeedback.textContent = 'La contraseña cumple con los requisitos.';
-            passwordFeedback.className = 'form-text text-success';
-        }
-
-        if (password !== confirmPassword) {
-            confirmPasswordInput.classList.add('password-mismatch');
-            confirmPasswordFeedback.textContent = 'Las contraseñas no coinciden.';
-            confirmPasswordFeedback.className = 'form-text text-danger';
-            submitBtn.disabled = true;
-        } else {
-            confirmPasswordInput.classList.remove('password-mismatch');
-            confirmPasswordFeedback.textContent = '';
-            if (passwordRegex.test(password)) {
-                submitBtn.disabled = false;
-            }
         }
     }
 
-    passwordInput.addEventListener('input', validatePassword);
-    confirmPasswordInput.addEventListener('input', validatePassword);
-
-    document.getElementById('registerForm').addEventListener('submit', function(event) {
-        if (passwordInput.value !== confirmPasswordInput.value) {
-            event.preventDefault();
-            alert('Las contraseñas no coinciden');
+    function validateConfirmPassword() {
+        if (password.value === confirmPassword.value) {
+            confirmPasswordFeedback.textContent = 'Las contraseñas coinciden';
+            confirmPasswordFeedback.className = 'form-text text-success';
+        } else {
+            confirmPasswordFeedback.textContent = 'Las contraseñas no coinciden';
+            confirmPasswordFeedback.className = 'form-text text-danger';
         }
+    }
+
+    function validateClaveDinamica() {
+        const regex = /^\d{4}$/;
+        if (regex.test(claveDinamica.value)) {
+            claveDinamicaFeedback.textContent = 'Clave dinámica válida';
+            claveDinamicaFeedback.className = 'form-text text-success';
+        } else {
+            claveDinamicaFeedback.textContent = 'La clave dinámica debe ser exactamente 4 dígitos';
+            claveDinamicaFeedback.className = 'form-text text-danger';
+        }
+    }
+
+    // Manejar el envío del formulario
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevenir el envío tradicional del formulario
+        
+        // Crear un objeto FormData con los datos del formulario
+        const formData = new FormData(form);
+
+        // Enviar los datos usando fetch
+        fetch('/register', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Mostrar el resultado en el modal
+            modalMessage.innerHTML = data.message;
+            modalMessage.className = data.success ? 'alert alert-success' : 'alert alert-danger';
+            resultModal.show();
+
+            // Si el registro fue exitoso, limpiar el formulario
+            if (data.success) {
+                form.reset();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalMessage.innerHTML = 'Ocurrió un error durante el registro. Por favor, intente nuevamente.';
+            modalMessage.className = 'alert alert-danger';
+            resultModal.show();
+        });
     });
 });
 </script>
