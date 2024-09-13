@@ -4,6 +4,8 @@ import re
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import random
+import string
+import os
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'  # Clave secreta para sesiones y flash messages
@@ -13,6 +15,53 @@ def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
+
+app.config['CARPETA_USUARIOS_ACTIVOS'] = os.path.join(app.root_path, 'usuarios_activos')
+if not os.path.exists(app.config['CARPETA_USUARIOS_ACTIVOS']):
+    os.makedirs(app.config['CARPETA_USUARIOS_ACTIVOS'])
+
+def crear_archivo_validacion(cedula):
+    caracteres_aleatorios = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    contenido = f"{cedula}{caracteres_aleatorios}"
+    nombre_archivo = f"cedula_{cedula}.txt"
+    ruta_completa = os.path.join(app.config['CARPETA_USUARIOS_ACTIVOS'], nombre_archivo)
+    
+    with open(ruta_completa, 'w') as archivo:
+        archivo.write(contenido)
+    
+    return True
+
+def validar_usuario(cedula):
+    nombre_archivo = f"cedula_{cedula}.txt"
+    ruta_completa = os.path.join(app.config['CARPETA_USUARIOS_ACTIVOS'], nombre_archivo)
+    
+    if os.path.exists(ruta_completa):
+        with open(ruta_completa, 'r') as archivo:
+            contenido = archivo.read()
+        
+        if contenido.startswith(cedula):
+            os.remove(ruta_completa)  # Eliminar el archivo después de la validación exitosa
+            return True
+    
+    return False
+
+@app.route('/api/notificar_llegada', methods=['POST'])
+def notificar_llegada():
+    data = request.json
+    cedula = data.get('cedula')
+    if cedula:
+        if crear_archivo_validacion(cedula):
+            return jsonify({'success': True, 'message': 'Llegada notificada con éxito'})
+    return jsonify({'success': False, 'message': 'Error al notificar llegada'}), 400
+
+@app.route('/api/validar_usuario', methods=['POST'])
+def validar_usuario_api():
+    data = request.json
+    cedula = data.get('cedula')
+    if cedula:
+        if validar_usuario(cedula):
+            return jsonify({'success': True, 'message': 'Usuario validado con éxito'})
+    return jsonify({'success': False, 'message': 'Validación fallida'}), 400
 
 @app.route('/api/estacionamiento/<string:id>')
 def api_estacionamiento(id):
