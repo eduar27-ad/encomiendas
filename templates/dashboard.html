@@ -84,7 +84,7 @@
 </div>
 
 <!-- Modal de detalles del estacionamiento -->
-<div class="modal fade" id="estacionamientoModal" tabindex="-1" aria-labelledby="estacionamientoModalLabel" aria-hidden="true">
+<div id="estacionamientoModal" class="modal fade" tabindex="-1" aria-labelledby="estacionamientoModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -307,19 +307,13 @@
     }
     // Función para mostrar detalles del estacionamiento
     function mostrarDetallesEstacionamiento(detalles) {
-        const modalElement = document.getElementById('estacionamientoModal');
-        if (!modalElement) {
-            console.error('El modal de estacionamiento no se encontró en el DOM');
-            return;
-        }
-
         document.getElementById('estacionamientoId').textContent = detalles.id;
         document.getElementById('estacionamientoEstado').textContent = detalles.estado;
         document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso || 'N/A';
         
         const infoOcupado = document.getElementById('infoOcupado');
         const btnLiberar = document.getElementById('btnLiberarEstacionamiento');
-        const btnCambiarEstado = document.getElementById('btnFueraServicio');
+        const btnFueraServicio = document.getElementById('btnFueraServicio');
 
         if (detalles.estado === 'ocupado') {
             infoOcupado.style.display = 'block';
@@ -340,24 +334,25 @@
 
             iniciarCronometro(detalles.horaInicio);
             btnLiberar.style.display = 'inline-block';
+            btnFueraServicio.style.display = 'none';
         } else {
             infoOcupado.style.display = 'none';
             btnLiberar.style.display = 'none';
+            btnFueraServicio.style.display = 'inline-block';
             detenerCronometro();
         }
 
         if (detalles.estado === 'fuera_de_servicio') {
-            btnCambiarEstado.textContent = 'Poner en Servicio';
-            btnCambiarEstado.classList.remove('btn-warning');
-            btnCambiarEstado.classList.add('btn-success');
+            btnFueraServicio.textContent = 'Poner en Servicio';
+            btnFueraServicio.classList.remove('btn-warning');
+            btnFueraServicio.classList.add('btn-success');
         } else {
-            btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
-            btnCambiarEstado.classList.remove('btn-success');
-            btnCambiarEstado.classList.add('btn-warning');
+            btnFueraServicio.textContent = 'Poner Fuera de Servicio';
+            btnFueraServicio.classList.remove('btn-success');
+            btnFueraServicio.classList.add('btn-warning');
         }
 
-        // Abrir el modal
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = new bootstrap.Modal(document.getElementById('estacionamientoModal'));
         modal.show();
     }
 
@@ -427,7 +422,9 @@
         .then(data => {
             if (data.success) {
                 actualizarEstacionamiento(id, 'disponible');
-                bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal'));
+                modal.hide();
+                mostrarMensaje('Estacionamiento liberado con éxito', 'success');
             } else {
                 throw new Error('No se pudo liberar el estacionamiento');
             }
@@ -440,6 +437,7 @@
             ocultarCargando();
         });
     }
+
 
     // Función para cambiar el estado de un estacionamiento
     function cambiarEstadoEstacionamiento(id, nuevoEstado) {
