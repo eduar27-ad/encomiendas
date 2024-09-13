@@ -14,6 +14,49 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+@app.route('/api/estacionamiento/<string:id>')
+def api_estacionamiento(id):
+    conn = get_db_connection()
+    try:
+        # Obtener detalles del estacionamiento
+        garaje = conn.execute('SELECT * FROM garajes WHERE id = ?', (id,)).fetchone()
+        
+        if not garaje:
+            return jsonify({'error': 'Estacionamiento no encontrado'}), 404
+        
+        resultado = {
+            'id': garaje['id'],
+            'estado': garaje['estado'],
+            'ultimoUso': None  # Inicialmente None, se actualizará si está ocupado
+        }
+        
+        # Si está ocupado, obtener información adicional
+        if garaje['estado'] == 'ocupado':
+            # Obtener la última encomienda asociada a este garaje (asumiendo que existe una relación)
+            encomienda = conn.execute('''
+                SELECT e.*, u.username
+                FROM encomiendas e
+                JOIN usuarios u ON e.destinatario_id = u.id
+                WHERE e.fecha_entrega IS NULL
+                ORDER BY e.fecha DESC
+                LIMIT 1
+            ''').fetchone()
+            
+            if encomienda:
+                resultado.update({
+                    'usuarioActual': encomienda['username'],
+                    'horaInicio': encomienda['fecha'],
+                    'encomiendas': [encomienda['descripcion']],
+                    'ultimoUso': encomienda['fecha']
+                })
+        
+        return jsonify(resultado)
+    
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/')
 def index():
     """Ruta principal que muestra el estado de los estacionamientos."""

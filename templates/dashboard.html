@@ -98,16 +98,19 @@
           <div id="infoOcupado" style="display: none;">
             <p><strong>Usuario actual:</strong> <span id="estacionamientoUsuario"></span></p>
             <p><strong>Tiempo de ocupación:</strong> <span id="estacionamientoTiempoOcupacion"></span></p>
+            <p><strong>Hora de inicio:</strong> <span id="estacionamientoHoraInicio"></span></p>
+            <h6>Encomiendas:</h6>
+            <ul id="estacionamientoEncomiendas"></ul>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-          <button type="button" class="btn btn-primary" id="btnLiberar" style="display: none;">Liberar Estacionamiento</button>
-          <button type="button" class="btn btn-success" id="btnCambiarEstado">Poner Fuera de Servicio</button>
+          <button type="button" class="btn btn-primary" id="btnLiberarEstacionamiento">Liberar Estacionamiento</button>
+          <button type="button" class="btn btn-warning" id="btnFueraServicio">Poner Fuera de Servicio</button>
         </div>
       </div>
     </div>
-</div>
+  </div>
 {% endblock %}
 
 {% block extra_css %}
@@ -134,6 +137,9 @@
 <script>
     // Datos del gráfico pasados desde Python
     var estadosEstacionamientos = JSON.parse('{{ estados_estacionamientos | tojson | safe }}');
+
+    let cronometroInterval;
+    let tiempoInicio;
 
     // Configuración del gráfico circular
     const ctx = document.getElementById('estadosChart').getContext('2d');
@@ -279,54 +285,119 @@
     document.querySelectorAll('.estacionamiento').forEach(item => {
         item.addEventListener('click', event => {
             const id = event.target.dataset.id;
-            const estado = event.target.classList[1];
-            
-            // Aquí deberías hacer una llamada al servidor para obtener los detalles del estacionamiento
-            // Por ahora, simularemos algunos datos
-            const detalles = {
-                id: id,
-                estado: estado,
-                ultimoUso: '2023-08-29 15:30',
-                usuario: 'Juan Pérez',
-                tiempoOcupacion: '2 horas 15 minutos'
-            };
-            
-            mostrarDetallesEstacionamiento(detalles);
+            cargarDetallesEstacionamiento(id);
         });
     });
 
+    //función para cargar detalles del estacionamiento
+    function cargarDetallesEstacionamiento(id) {
+        mostrarCargando();
+        fetch(`/api/estacionamiento/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                mostrarDetallesEstacionamiento(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarError('No se pudieron cargar los detalles del estacionamiento');
+            })
+            .finally(() => {
+                ocultarCargando();
+            });
+    }
     // Función para mostrar detalles del estacionamiento
     function mostrarDetallesEstacionamiento(detalles) {
+        const modalElement = document.getElementById('estacionamientoModal');
+        if (!modalElement) {
+            console.error('El modal de estacionamiento no se encontró en el DOM');
+            return;
+        }
+
         document.getElementById('estacionamientoId').textContent = detalles.id;
         document.getElementById('estacionamientoEstado').textContent = detalles.estado;
-        document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso;
+        document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso || 'N/A';
         
         const infoOcupado = document.getElementById('infoOcupado');
-        const btnLiberar = document.getElementById('btnLiberar');
-        const btnCambiarEstado = document.getElementById('btnCambiarEstado');
+        const btnLiberar = document.getElementById('btnLiberarEstacionamiento');
+        const btnCambiarEstado = document.getElementById('btnFueraServicio');
 
         if (detalles.estado === 'ocupado') {
             infoOcupado.style.display = 'block';
-            document.getElementById('estacionamientoUsuario').textContent = detalles.usuario;
-            document.getElementById('estacionamientoTiempoOcupacion').textContent = detalles.tiempoOcupacion;
+            document.getElementById('estacionamientoUsuario').textContent = detalles.usuarioActual || 'Desconocido';
+            document.getElementById('estacionamientoHoraInicio').textContent = detalles.horaInicio || 'N/A';
+            
+            const listaEncomiendas = document.getElementById('estacionamientoEncomiendas');
+            listaEncomiendas.innerHTML = '';
+            if (detalles.encomiendas && detalles.encomiendas.length > 0) {
+                detalles.encomiendas.forEach(encomienda => {
+                    const li = document.createElement('li');
+                    li.textContent = encomienda;
+                    listaEncomiendas.appendChild(li);
+                });
+            } else {
+                listaEncomiendas.innerHTML = '<li>No hay encomiendas registradas</li>';
+            }
+
+            iniciarCronometro(detalles.horaInicio);
             btnLiberar.style.display = 'inline-block';
         } else {
             infoOcupado.style.display = 'none';
             btnLiberar.style.display = 'none';
+            detenerCronometro();
         }
 
         if (detalles.estado === 'fuera_de_servicio') {
             btnCambiarEstado.textContent = 'Poner en Servicio';
-            btnCambiarEstado.classList.remove('btn-danger');
+            btnCambiarEstado.classList.remove('btn-warning');
             btnCambiarEstado.classList.add('btn-success');
         } else {
             btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
             btnCambiarEstado.classList.remove('btn-success');
-            btnCambiarEstado.classList.add('btn-danger');
+            btnCambiarEstado.classList.add('btn-warning');
         }
 
-        new bootstrap.Modal(document.getElementById('estacionamientoModal')).show();
+        // Abrir el modal
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
     }
+
+    function iniciarCronometro(horaInicio) {
+        tiempoInicio = new Date(horaInicio).getTime();
+        actualizarCronometro();
+        cronometroInterval = setInterval(actualizarCronometro, 1000);
+    }
+    // función para actualizar el cronómetro
+    function detenerCronometro() {
+        clearInterval(cronometroInterval);
+    }
+
+    function actualizarCronometro() {
+        const ahora = new Date().getTime();
+        const tiempoTranscurrido = ahora - tiempoInicio;
+        const horas = Math.floor(tiempoTranscurrido / (1000 * 60 * 60));
+        const minutos = Math.floor((tiempoTranscurrido % (1000 * 60 * 60)) / (1000 * 60));
+        const segundos = Math.floor((tiempoTranscurrido % (1000 * 60)) / 1000);
+
+        document.getElementById('estacionamientoTiempoOcupacion').textContent = 
+            `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    }
+
+    // Event listeners para los estacionamientos
+    document.querySelectorAll('.estacionamiento').forEach(item => {
+        item.addEventListener('click', event => {
+            const id = event.target.dataset.id;
+            cargarDetallesEstacionamiento(id);
+        });
+    });
+
+    // Event listener para cerrar el modal y detener el cronómetro
+    const estacionamientoModal = document.getElementById('estacionamientoModal');
+    if (estacionamientoModal) {
+        estacionamientoModal.addEventListener('hidden.bs.modal', function () {
+            detenerCronometro();
+        });
+    }
+
 
     // Event listener para el botón de liberar
     document.getElementById('btnLiberar').addEventListener('click', () => {
@@ -407,6 +478,9 @@
             ocultarCargando();
         });
     }
+
+    // Limpiar el intervalo del cronómetro cuando se cierra el modal
+
 
     // Inicializar las actualizaciones
     obtenerActualizaciones();
