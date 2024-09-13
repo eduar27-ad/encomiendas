@@ -104,10 +104,12 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-          <button type="button" class="btn btn-primary" id="btnLiberarEstacionamiento">Liberar Estacionamiento</button>
-          <button type="button" class="btn btn-warning" id="btnFueraServicio">Poner Fuera de Servicio</button>
-        </div>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <!-- Botón para liberar estacionamiento, solo visible cuando está ocupado -->
+            <button type="button" class="btn btn-primary" id="btnLiberarEstacionamiento" style="display: none;">Liberar Estacionamiento</button>
+            <!-- Botón para cambiar estado entre disponible y fuera de servicio -->
+            <button type="button" class="btn btn-warning" id="btnCambiarEstado">Poner Fuera de Servicio</button>
+          </div>
       </div>
     </div>
   </div>
@@ -305,56 +307,54 @@
                 ocultarCargando();
             });
     }
+
     // Función para mostrar detalles del estacionamiento
     function mostrarDetallesEstacionamiento(detalles) {
         document.getElementById('estacionamientoId').textContent = detalles.id;
         document.getElementById('estacionamientoEstado').textContent = detalles.estado;
         document.getElementById('estacionamientoUltimoUso').textContent = detalles.ultimoUso || 'N/A';
-        
+
         const infoOcupado = document.getElementById('infoOcupado');
         const btnLiberar = document.getElementById('btnLiberarEstacionamiento');
-        const btnFueraServicio = document.getElementById('btnFueraServicio');
+        const btnCambiarEstado = document.getElementById('btnCambiarEstado');
 
         if (detalles.estado === 'ocupado') {
             infoOcupado.style.display = 'block';
-            document.getElementById('estacionamientoUsuario').textContent = detalles.usuarioActual || 'Desconocido';
-            document.getElementById('estacionamientoHoraInicio').textContent = detalles.horaInicio || 'N/A';
-            
-            const listaEncomiendas = document.getElementById('estacionamientoEncomiendas');
-            listaEncomiendas.innerHTML = '';
-            if (detalles.encomiendas && detalles.encomiendas.length > 0) {
-                detalles.encomiendas.forEach(encomienda => {
-                    const li = document.createElement('li');
-                    li.textContent = encomienda;
-                    listaEncomiendas.appendChild(li);
-                });
-            } else {
-                listaEncomiendas.innerHTML = '<li>No hay encomiendas registradas</li>';
-            }
-
-            iniciarCronometro(detalles.horaInicio);
             btnLiberar.style.display = 'inline-block';
-            btnFueraServicio.style.display = 'none';
+            btnCambiarEstado.style.display = 'none';
+            document.getElementById('estacionamientoUsuario').textContent = detalles.usuarioActual || 'Desconocido';
+            document.getElementById('estacionamientoTiempoOcupacion').textContent = calcularTiempoOcupacion(detalles.horaInicio);
+            iniciarCronometro(detalles.horaInicio);
         } else {
             infoOcupado.style.display = 'none';
             btnLiberar.style.display = 'none';
-            btnFueraServicio.style.display = 'inline-block';
+            btnCambiarEstado.style.display = 'inline-block';
             detenerCronometro();
-        }
-
-        if (detalles.estado === 'fuera_de_servicio') {
-            btnFueraServicio.textContent = 'Poner en Servicio';
-            btnFueraServicio.classList.remove('btn-warning');
-            btnFueraServicio.classList.add('btn-success');
-        } else {
-            btnFueraServicio.textContent = 'Poner Fuera de Servicio';
-            btnFueraServicio.classList.remove('btn-success');
-            btnFueraServicio.classList.add('btn-warning');
+            if (detalles.estado === 'fuera_de_servicio') {
+                btnCambiarEstado.textContent = 'Poner en Servicio';
+                btnCambiarEstado.classList.remove('btn-warning');
+                btnCambiarEstado.classList.add('btn-success');
+            } else {
+                btnCambiarEstado.textContent = 'Poner Fuera de Servicio';
+                btnCambiarEstado.classList.remove('btn-success');
+                btnCambiarEstado.classList.add('btn-warning');
+            }
         }
 
         const modal = new bootstrap.Modal(document.getElementById('estacionamientoModal'));
         modal.show();
     }
+
+    // Función para calcular el tiempo de ocupación
+    function calcularTiempoOcupacion(horaInicio) {
+    const inicio = new Date(horaInicio);
+    const ahora = new Date();
+    const diferencia = ahora - inicio;
+    const horas = Math.floor(diferencia / 3600000);
+    const minutos = Math.floor((diferencia % 3600000) / 60000);
+    return `${horas}h ${minutos}m`;
+    }
+
 
     function iniciarCronometro(horaInicio) {
         tiempoInicio = new Date(horaInicio).getTime();
@@ -400,8 +400,15 @@
         liberarEstacionamiento(id);
     });
 
+    // Event listeners para los botones
+    document.getElementById('btnLiberarEstacionamiento').addEventListener('click', function() {
+        const id = document.getElementById('estacionamientoId').textContent;
+        cambiarEstadoEstacionamiento(id, 'disponible');
+    });
+    
+
     // Event listener para el botón de cambiar estado
-    document.getElementById('btnCambiarEstado').addEventListener('click', () => {
+    document.getElementById('btnCambiarEstado').addEventListener('click', function() {
         const id = document.getElementById('estacionamientoId').textContent;
         const estadoActual = document.getElementById('estacionamientoEstado').textContent;
         const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
@@ -439,8 +446,8 @@
     }
 
 
-    // Función para cambiar el estado de un estacionamiento
-    function cambiarEstadoEstacionamiento(id, nuevoEstado) {
+     // Función unificada para cambiar el estado del estacionamiento
+     function cambiarEstadoEstacionamiento(id, nuevoEstado) {
         mostrarCargando();
         fetch('/actualizar_estacionamiento', {
             method: 'POST',
@@ -453,31 +460,26 @@
         .then(data => {
             if (data.success) {
                 actualizarEstacionamiento(id, nuevoEstado);
-                const btn = document.getElementById('btnCambiarEstado');
-                if (nuevoEstado === 'fuera_de_servicio') {
-                    btn.textContent = 'Poner en Servicio';
-                    btn.classList.remove('btn-danger');
-                    btn.classList.add('btn-success');
-                } else {
-                    btn.textContent = 'Poner Fuera de Servicio';
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-danger');
-                }
-                document.getElementById('estacionamientoEstado').textContent = nuevoEstado;
+                bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal')).hide();
+                mostrarMensaje(`Estacionamiento actualizado a ${nuevoEstado}`, 'success');
             } else {
-                throw new Error(`No se pudo cambiar el estado del estacionamiento a ${nuevoEstado}`);
+                throw new Error(data.message || 'Error al actualizar el estacionamiento');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            mostrarError(`No se pudo actualizar el estado del estacionamiento. Por favor, intente de nuevo.`);
+            mostrarMensaje('Error al actualizar el estacionamiento', 'error');
         })
         .finally(() => {
             ocultarCargando();
         });
     }
 
-    // Limpiar el intervalo del cronómetro cuando se cierra el modal
+    // Función para mostrar mensajes (success o error)
+    function mostrarMensaje(mensaje, tipo) {
+        // Implementar lógica para mostrar mensajes (puedes usar un toast o un alert personalizado)
+        alert(mensaje);
+    }
 
 
     // Inicializar las actualizaciones
