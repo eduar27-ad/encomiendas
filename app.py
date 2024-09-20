@@ -45,11 +45,54 @@ def validar_usuario(cedula):
     
     return False
 
+@app.route('/')
+def index():
+    """Ruta principal que muestra el estado de los estacionamientos y usuarios."""
+    conn = get_db_connection()
+    estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
+    usuarios_en_camino = conn.execute('SELECT * FROM usuarios WHERE estado = "en_camino"').fetchall()
+    usuarios_en_estacionamiento = conn.execute('SELECT * FROM usuarios WHERE estado = "en_estacionamiento"').fetchall()
+    conn.close()
+    return render_template('index.html', 
+                           estacionamientos=estacionamientos, 
+                           usuarios_en_camino=usuarios_en_camino,
+                           usuarios_en_estacionamiento=usuarios_en_estacionamiento)
+@app.route('/api/usuarios_en_camino')
+def api_usuarios_en_camino():
+    conn = get_db_connection()
+    usuarios = conn.execute('SELECT id, username, identificacion FROM usuarios WHERE estado = "en_camino"').fetchall()
+    conn.close()
+    return jsonify([dict(usuario) for usuario in usuarios])
+
+@app.route('/api/usuarios_en_estacionamiento')
+def api_usuarios_en_estacionamiento():
+    conn = get_db_connection()
+    usuarios = conn.execute('SELECT id, username, identificacion FROM usuarios WHERE estado = "en_estacionamiento"').fetchall()
+    conn.close()
+    return jsonify([dict(usuario) for usuario in usuarios])
+
+@app.route('/api/usuario/<int:id>')
+def api_usuario(id):
+    conn = get_db_connection()
+    usuario = conn.execute('SELECT id, username, identificacion, estado FROM usuarios WHERE id = ?', (id,)).fetchone()
+    if usuario:
+        encomiendas = conn.execute('SELECT descripcion FROM encomiendas WHERE destinatario_id = ? AND fecha_entrega IS NULL', (id,)).fetchall()
+        usuario_dict = dict(usuario)
+        usuario_dict['encomiendas'] = [e['descripcion'] for e in encomiendas]
+        conn.close()
+        return jsonify(usuario_dict)
+    conn.close()
+    return jsonify({'error': 'Usuario no encontrado'}), 404
+
 @app.route('/api/notificar_llegada', methods=['POST'])
 def notificar_llegada():
     data = request.json
     cedula = data.get('cedula')
     if cedula:
+        conn = get_db_connection()
+        conn.execute('UPDATE usuarios SET estado = "en_camino" WHERE identificacion = ?', (cedula,))
+        conn.commit()
+        conn.close()
         if crear_archivo_validacion(cedula):
             return jsonify({'success': True, 'message': 'Llegada notificada con éxito'})
     return jsonify({'success': False, 'message': 'Error al notificar llegada'}), 400
@@ -60,6 +103,10 @@ def validar_usuario_api():
     cedula = data.get('cedula')
     if cedula:
         if validar_usuario(cedula):
+            conn = get_db_connection()
+            conn.execute('UPDATE usuarios SET estado = "en_estacionamiento" WHERE identificacion = ?', (cedula,))
+            conn.commit()
+            conn.close()
             return jsonify({'success': True, 'message': 'Usuario validado con éxito'})
     return jsonify({'success': False, 'message': 'Validación fallida'}), 400
 
@@ -67,7 +114,6 @@ def validar_usuario_api():
 def api_estacionamiento(id):
     conn = get_db_connection()
     try:
-        # Obtener detalles del estacionamiento
         garaje = conn.execute('SELECT * FROM garajes WHERE id = ?', (id,)).fetchone()
         
         if not garaje:
@@ -76,12 +122,10 @@ def api_estacionamiento(id):
         resultado = {
             'id': garaje['id'],
             'estado': garaje['estado'],
-            'ultimoUso': None  # Inicialmente None, se actualizará si está ocupado
+            'ultimoUso': None
         }
         
-        # Si está ocupado, obtener información adicional
         if garaje['estado'] == 'ocupado':
-            # Obtener la última encomienda asociada a este garaje (asumiendo que existe una relación)
             encomienda = conn.execute('''
                 SELECT e.*, u.username
                 FROM encomiendas e
@@ -106,14 +150,6 @@ def api_estacionamiento(id):
     finally:
         conn.close()
 
-@app.route('/')
-def index():
-    """Ruta principal que muestra el estado de los estacionamientos."""
-    conn = get_db_connection()
-    estacionamientos = conn.execute('SELECT * FROM garajes').fetchall()
-    conn.close()
-    return render_template('index.html', estacionamientos=estacionamientos)
-
 @app.route('/buscar_destinatario')
 def buscar_destinatario():
     query = request.args.get('query', '')
@@ -135,7 +171,6 @@ def buscar_destinatario():
         'username': usuario['username'],
         'identificacion': usuario['identificacion']
     } for usuario in usuarios])
-
 
 @app.route('/consultar_encomienda', methods=['POST'])
 def consultar_encomienda():
@@ -196,7 +231,6 @@ def dashboard():
     garajes = conn.execute('SELECT * FROM garajes').fetchall()
     alertas = conn.execute('SELECT * FROM alertas ORDER BY fecha DESC LIMIT 5').fetchall()
     
-    # Contar estacionamientos por estado
     estados_estacionamientos = {
         'disponible': 0,
         'ocupado': 0,
@@ -215,6 +249,7 @@ def dashboard():
                            garajes=garajes, 
                            alertas=alertas, 
                            estados_estacionamientos=estados_estacionamientos)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -240,7 +275,6 @@ def register():
         
         conn = get_db_connection()
         try:
-            # Verificar si el usuario, la identificación o la clave dinámica ya existen
             existing_user = conn.execute('SELECT * FROM usuarios WHERE username = ? OR identificacion = ? OR clave_dinamica = ?', 
                                          (username, identificacion, clave_dinamica)).fetchone()
             if existing_user:
@@ -251,11 +285,10 @@ def register():
                 elif existing_user['clave_dinamica'] == clave_dinamica:
                     return jsonify({'success': False, 'message': 'Error: La clave dinámica ya está en uso'})
             
-            # Hash de la contraseña
             hashed_password = generate_password_hash(password)
             
-            conn.execute('INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES (?, ?, ?, ?)',
-                         (username, hashed_password, identificacion, clave_dinamica))
+            conn.execute('INSERT INTO usuarios (username, password, identificacion, clave_dinamica, estado) VALUES (?, ?, ?, ?, ?)',
+                         (username, hashed_password, identificacion, clave_dinamica, 'normal'))
             conn.commit()
             return jsonify({'success': True, 'message': 'Usuario registrado exitosamente'})
         except sqlite3.Error as e:
@@ -272,18 +305,16 @@ def encomienda():
         destinatario_id = request.form['destinatario_id']
         descripcion = request.form['descripcion']
         peso = request.form['peso']
-        dimensiones = request.form.get('dimensiones', '')  # Campo opcional
+        dimensiones = request.form.get('dimensiones', '')
         fecha_llegada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         conn = get_db_connection()
         try:
-            # Insertar la nueva encomienda
             cursor = conn.execute('''
                 INSERT INTO encomiendas (destinatario_id, descripcion, peso, dimensiones, fecha)
                 VALUES (?, ?, ?, ?, ?)
             ''', (destinatario_id, descripcion, peso, dimensiones, fecha_llegada))
             
-            # Obtener el nombre del destinatario
             destinatario = conn.execute('SELECT username FROM usuarios WHERE id = ?', (destinatario_id,)).fetchone()
             
             conn.commit()
@@ -306,7 +337,6 @@ def encomienda():
     usuarios = conn.execute('SELECT id, username, identificacion FROM usuarios').fetchall()
     conn.close()
     return render_template('encomienda.html', usuarios=usuarios)
-
 
 @app.route('/get_updates')
 def get_updates():

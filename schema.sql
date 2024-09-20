@@ -10,7 +10,8 @@ CREATE TABLE usuarios (
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     identificacion TEXT UNIQUE NOT NULL,
-    clave_dinamica TEXT NOT NULL
+    clave_dinamica TEXT NOT NULL,
+    estado TEXT DEFAULT 'normal'
 );
 
 -- Crea la tabla de encomiendas
@@ -35,7 +36,8 @@ CREATE TABLE garajes (
 CREATE TABLE alertas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     mensaje TEXT NOT NULL,
-    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    leida BOOLEAN DEFAULT 0
 );
 
 -- Inicializa los garajes
@@ -44,9 +46,9 @@ INSERT INTO garajes (id, estado) VALUES
 ('B1', 'disponible'), ('B2', 'disponible'), ('B3', 'disponible'), ('B4', 'disponible'), ('B5', 'disponible');
 
 -- Inserta usuarios de ejemplo
-INSERT INTO usuarios (username, password, identificacion, clave_dinamica) VALUES
-('Eduar de Jesus Pila Franco', 'macguiver15', '1003294451', '2712'),
-('Moises Guzman Tovar', '2704', '1003309107', '1234');
+INSERT INTO usuarios (username, password, identificacion, clave_dinamica, estado) VALUES
+('Eduar de Jesus Pila Franco', 'macguiver15', '1003294451', '2712', 'normal'),
+('Moises Guzman Tovar', '2704', '1003309107', '1234', 'normal');
 
 -- Inserta encomiendas de ejemplo
 INSERT INTO encomiendas (destinatario_id, descripcion, peso) VALUES
