@@ -6,6 +6,9 @@ from datetime import datetime
 import random
 import string
 import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'  # Clave secreta para sesiones y flash messages
@@ -57,6 +60,8 @@ def index():
                            estacionamientos=estacionamientos, 
                            usuarios_en_camino=usuarios_en_camino,
                            usuarios_en_estacionamiento=usuarios_en_estacionamiento)
+
+                           
 @app.route('/api/usuarios_en_camino')
 def api_usuarios_en_camino():
     conn = get_db_connection()
@@ -93,8 +98,11 @@ def notificar_llegada():
         conn.execute('UPDATE usuarios SET estado = "en_camino" WHERE identificacion = ?', (cedula,))
         conn.commit()
         conn.close()
+        logging.debug(f"Usuario con cédula {cedula} notificó su llegada")
         if crear_archivo_validacion(cedula):
+            logging.debug(f"Archivo de validación creado para cédula {cedula}")
             return jsonify({'success': True, 'message': 'Llegada notificada con éxito'})
+    logging.error(f"Error al notificar llegada para cédula {cedula}")
     return jsonify({'success': False, 'message': 'Error al notificar llegada'}), 400
 
 @app.route('/api/validar_usuario', methods=['POST'])
@@ -107,8 +115,14 @@ def validar_usuario_api():
             conn.execute('UPDATE usuarios SET estado = "en_estacionamiento" WHERE identificacion = ?', (cedula,))
             conn.commit()
             conn.close()
+            logging.debug(f"Usuario con cédula {cedula} validado y movido a estacionamiento")
             return jsonify({'success': True, 'message': 'Usuario validado con éxito'})
+    logging.error(f"Validación fallida para cédula {cedula}")
     return jsonify({'success': False, 'message': 'Validación fallida'}), 400
+
+@app.route('/test')
+def test_page():
+    return render_template('test.html')
 
 @app.route('/api/estacionamiento/<string:id>')
 def api_estacionamiento(id):

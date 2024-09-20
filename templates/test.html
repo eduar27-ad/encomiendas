@@ -1,0 +1,47 @@
+<!-- test.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Sistema</title>
+</head>
+<body>
+    <h1>Prueba de Sistema</h1>
+    <form id="notificarLlegada">
+        <h2>Notificar Llegada</h2>
+        <input type="text" id="cedulaLlegada" placeholder="Cédula">
+        <button type="submit">Notificar Llegada</button>
+    </form>
+    <form id="validarUsuario">
+        <h2>Validar Usuario</h2>
+        <input type="text" id="cedulaValidacion" placeholder="Cédula">
+        <button type="submit">Validar Usuario</button>
+    </form>
+    <script>
+        document.getElementById('notificarLlegada').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cedula = document.getElementById('cedulaLlegada').value;
+            fetch('/api/notificar_llegada', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cedula: cedula})
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message));
+        });
+
+        document.getElementById('validarUsuario').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cedula = document.getElementById('cedulaValidacion').value;
+            fetch('/api/validar_usuario', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cedula: cedula})
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message));
+        });
+    </script>
+</body>
+</html>

@@ -147,6 +147,49 @@
 
 {% block extra_js %}
 <script>
+    function actualizarUsuarios() {
+    fetch('/api/usuarios_en_camino')
+        .then(response => response.json())
+        .then(usuarios => {
+            const contenedor = document.getElementById('usuarios-en-camino');
+            contenedor.innerHTML = usuarios.map(usuario => `
+                <div class="col">
+                    <div class="card h-100" onclick="mostrarDetallesUsuario('${usuario.id}')">
+                        <div class="card-body">
+                            <h5 class="card-title">${usuario.username}</h5>
+                            <p class="card-text">ID: ${usuario.identificacion}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            console.log('Usuarios en camino actualizados:', usuarios);
+        });
+
+    fetch('/api/usuarios_en_estacionamiento')
+        .then(response => response.json())
+        .then(usuarios => {
+            const contenedor = document.getElementById('usuarios-en-estacionamiento');
+            contenedor.innerHTML = usuarios.map(usuario => `
+                <div class="col">
+                    <div class="card h-100" onclick="mostrarDetallesUsuario('${usuario.id}')">
+                        <div class="card-body">
+                            <h5 class="card-title">${usuario.username}</h5>
+                            <p class="card-text">ID: ${usuario.identificacion}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            console.log('Usuarios en estacionamiento actualizados:', usuarios);
+        });
+}
+
+// Actualizar cada 30 segundos
+setInterval(actualizarUsuarios, 30000);
+
+// Actualizar inmediatamente al cargar la página
+document.addEventListener('DOMContentLoaded', actualizarUsuarios);
+
+
         function mostrarDetallesUsuario(id) {
     fetch(`/api/usuario/${id}`)
         .then(response => response.json())
