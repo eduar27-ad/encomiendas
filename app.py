@@ -312,6 +312,12 @@ def register():
     
     return render_template('register.html')
 
+
+@app.route('/whatsapp-sim')
+def whatsapp_sim():
+    return render_template('whatsapp_sim.html')
+
+
 @app.route('/encomienda', methods=['GET', 'POST'])
 def encomienda():
     """Maneja el registro de nuevas encomiendas."""
