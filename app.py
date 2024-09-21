@@ -315,7 +315,7 @@ def register():
 
 @app.route('/whatsapp-sim')
 def whatsapp_sim():
-    return render_template('whatsapp_sim.html')
+       return render_template('whatsapp_sim_advanced.html')
 
 
 @app.route('/encomienda', methods=['GET', 'POST'])
