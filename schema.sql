@@ -45,6 +45,7 @@ INSERT INTO garajes (id, estado) VALUES
 ('A1', 'disponible'), ('A2', 'disponible'), ('A3', 'disponible'), ('A4', 'disponible'), ('A5', 'disponible'),
 ('B1', 'disponible'), ('B2', 'disponible'), ('B3', 'disponible'), ('B4', 'disponible'), ('B5', 'disponible');
 
+/*
 -- Inserta usuarios de ejemplo
 INSERT INTO usuarios (username, password, identificacion, clave_dinamica, estado) VALUES
 ('Eduar de Jesus Pila Franco', 'macguiver15', '1003294451', '2712', 'normal'),
@@ -55,3 +56,4 @@ INSERT INTO encomiendas (destinatario_id, descripcion, peso) VALUES
 (1, 'Paquete grande', 5.0),
 (1, 'Sobre urgente', 0.5),
 (2, 'Caja mediana', 3.0);
+*/

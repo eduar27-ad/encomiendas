@@ -85,10 +85,11 @@
         }
     </style>
 </head>
+</head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <img src="https://via.placeholder.com/40" alt="Logo">
+            <img src= "logo.jpg" alt="Logo">
             <h5 style="margin: 0;">Sistema de Encomiendas</h5>
         </div>
         <div class="chat-body" id="chatBody">
@@ -106,96 +107,8 @@
         const chatBody = document.getElementById('chatBody');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
-        
         let currentState = 'initial';
-        let usuario = null;
-        let paquetesDisponibles = [
-            { id: 1, descripcion: "Libro", estado: "Listo para recoger" },
-            { id: 2, descripcion: "Electrónica", estado: "En camino" },
-            { id: 3, descripcion: "Ropa", estado: "Listo para recoger" },
-            { id: 4, descripcion: "Artículos de cocina", estado: "Listo para recoger" }
-        ];
-        let paquetesSeleccionados = [];
-
-        const estados = {
-            initial: {
-                process: (msg) => {
-                    if (msg.toLowerCase() === 'iniciar sesion') {
-                        addMessage("Por favor, ingresa tu nombre de usuario:", 'system-message');
-                        return 'esperando_usuario';
-                    } else {
-                        addMessage("Para comenzar, escribe 'iniciar sesion'", 'system-message');
-                        return 'initial';
-                    }
-                }
-            },
-            esperando_usuario: {
-                process: (msg) => {
-                    addMessage("Ahora, ingresa tu contraseña:", 'system-message');
-                    usuario = { nombre: msg };
-                    return 'esperando_password';
-                }
-            },
-            esperando_password: {
-                process: (msg) => {
-                    if (usuario.nombre === "usuario" && msg === "1234") {
-                        addMessage("Inicio de sesión exitoso.", 'system-message');
-                        showMainMenu();
-                        return 'menu_principal';
-                    } else {
-                        addMessage("Usuario o contraseña incorrectos. Por favor, escribe 'iniciar sesion' para intentar de nuevo.", 'system-message');
-                        usuario = null;
-                        return 'initial';
-                    }
-                }
-            },
-            menu_principal: {
-                process: (msg) => {
-                    switch(msg) {
-                        case '1': return mostrarPaquetes();
-                        case '2': return notificarLlegada();
-                        case '3': return mostrarEstadoPaquetes();
-                        case '4': return cerrarSesion();
-                        case 'menu': 
-                            showMainMenu();
-                            return 'menu_principal';
-                        default:
-                            addMessage("Opción no válida. Por favor, elige una opción del menú o escribe 'menu' para ver las opciones.", 'system-message');
-                            return 'menu_principal';
-                    }
-                }
-            },
-            seleccionando_paquetes: {
-                process: (msg) => {
-                    if (msg.toLowerCase() === 'todos') {
-                        seleccionarTodosPaquetes();
-                        return 'confirmando_llegada';
-                    } else if (msg.toLowerCase() === 'cancelar') {
-                        addMessage("Selección cancelada. Volviendo al menú principal.", 'system-message');
-                        showMainMenu();
-                        return 'menu_principal';
-                    } else {
-                        return seleccionarPaquetesEspecificos(msg);
-                    }
-                }
-            },
-            confirmando_llegada: {
-                process: (msg) => {
-                    if (msg.toLowerCase() === 'si') {
-                        notificarLlegadaSeleccionados();
-                        showMainMenu();
-                        return 'menu_principal';
-                    } else if (msg.toLowerCase() === 'no') {
-                        addMessage("No has notificado tu llegada. Volviendo al menú principal.", 'system-message');
-                        showMainMenu();
-                        return 'menu_principal';
-                    } else {
-                        addMessage("Por favor, responde 'Si' para confirmar o 'No' para cancelar.", 'system-message');
-                        return 'confirmando_llegada';
-                    }
-                }
-            }
-        };
+        let userData = {};
 
         function addMessage(text, className) {
             const messageElement = document.createElement('div');
@@ -205,104 +118,44 @@
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
-        function showMainMenu() {
-            const menuText = `Menú Principal:
-1. Ver paquetes disponibles
-2. Notificar llegada para recoger
-3. Ver estado de mis paquetes
-4. Cerrar sesión
-
-Por favor, escribe el número de la opción que deseas.`;
-            addMessage(menuText, 'system-message');
-        }
-
-        function mostrarPaquetes() {
-            let mensaje = "Tus paquetes disponibles:\n";
-            paquetesDisponibles.forEach(paquete => {
-                mensaje += `${paquete.id}. ${paquete.descripcion} (${paquete.estado})\n`;
-            });
-            mensaje += "\nPara seleccionar paquetes, escribe los números separados por espacios (ej: '1 3').\nPara seleccionar todos, escribe 'todos'.\nPara cancelar, escribe 'cancelar'.";
-            addMessage(mensaje, 'system-message');
-            return 'seleccionando_paquetes';
-        }
-
-        function seleccionarTodosPaquetes() {
-            paquetesSeleccionados = paquetesDisponibles.filter(p => p.estado === "Listo para recoger");
-            mostrarPaquetesSeleccionados();
-        }
-
-        function seleccionarPaquetesEspecificos(seleccion) {
-            const numerosSeleccionados = seleccion.split(' ').map(Number);
-            paquetesSeleccionados = paquetesDisponibles.filter(paquete => 
-                numerosSeleccionados.includes(paquete.id) && paquete.estado === "Listo para recoger"
-            );
-            
-            if (paquetesSeleccionados.length > 0) {
-                mostrarPaquetesSeleccionados();
-                return 'confirmando_llegada';
-            } else {
-                addMessage("No has seleccionado paquetes válidos o listos para recoger. Por favor, intenta de nuevo.", 'system-message');
-                return 'seleccionando_paquetes';
+        async function sendMessage(message) {
+            try {
+                const response = await fetch('/api/whatsapp-interaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        state: currentState,
+                        userData: userData
+                    }),
+                });
+                const data = await response.json();
+                addMessage(data.message, 'system-message');
+                currentState = data.new_state;
+                if (data.username) {
+                    userData.username = data.username;
+                }
+                if (data.logged_in) {
+                    userData.loggedIn = true;
+                }
+                if (data.logged_out) {
+                    userData = {};
+                    currentState = 'initial';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo.', 'system-message');
             }
-        }
-
-        function mostrarPaquetesSeleccionados() {
-            let mensaje = "Has seleccionado los siguientes paquetes:\n";
-            paquetesSeleccionados.forEach(paquete => {
-                mensaje += `- ${paquete.descripcion}\n`;
-            });
-            mensaje += "\n¿Deseas notificar tu llegada para recoger estos paquetes? (Si/No)";
-            addMessage(mensaje, 'system-message');
-        }
-
-        function notificarLlegada() {
-            if (paquetesSeleccionados.length > 0) {
-                return notificarLlegadaSeleccionados();
-            } else {
-                addMessage("No has seleccionado ningún paquete para recoger. Por favor, primero selecciona los paquetes que deseas recoger.", 'system-message');
-                return mostrarPaquetes();
-            }
-        }
-
-        function notificarLlegadaSeleccionados() {
-            let mensaje = "Has notificado tu llegada para recoger los siguientes paquetes:\n";
-            paquetesSeleccionados.forEach(paquete => {
-                mensaje += `- ${paquete.descripcion}\n`;
-            });
-            mensaje += "\nPor favor, dirígete al área de recogida. ¿Necesitas algo más?";
-            addMessage(mensaje, 'system-message');
-            paquetesSeleccionados = []; // Reseteamos la selección después de notificar
-            return 'menu_principal';
-        }
-
-        function mostrarEstadoPaquetes() {
-            let estadoMensaje = "Estado de tus paquetes:\n";
-            const listos = paquetesDisponibles.filter(p => p.estado === "Listo para recoger").length;
-            const enCamino = paquetesDisponibles.filter(p => p.estado === "En camino").length;
-            estadoMensaje += `- ${listos} paquete(s) listo(s) para recoger\n`;
-            estadoMensaje += `- ${enCamino} paquete(s) en camino\n`;
-            estadoMensaje += "\n¿Qué más puedo hacer por ti?";
-            addMessage(estadoMensaje, 'system-message');
-            return 'menu_principal';
-        }
-
-        function cerrarSesion() {
-            usuario = null;
-            paquetesSeleccionados = [];
-            addMessage("Has cerrado sesión. Escribe 'iniciar sesion' cuando desees volver a entrar.", 'system-message');
-            return 'initial';
-        }
-
-        function processMessage(message) {
-            addMessage(message, 'user-message');
-            currentState = estados[currentState].process(message);
         }
 
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const message = messageInput.value.trim();
             if (message) {
-                processMessage(message);
+                addMessage(message, 'user-message');
+                sendMessage(message);
                 messageInput.value = '';
             }
         });

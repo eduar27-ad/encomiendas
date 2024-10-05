@@ -7,6 +7,7 @@ import random
 import string
 import os
 import logging
+from flask import session
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -89,6 +90,7 @@ def api_usuario(id):
     conn.close()
     return jsonify({'error': 'Usuario no encontrado'}), 404
 
+
 @app.route('/api/notificar_llegada', methods=['POST'])
 def notificar_llegada():
     data = request.json
@@ -104,6 +106,7 @@ def notificar_llegada():
             return jsonify({'success': True, 'message': 'Llegada notificada con éxito'})
     logging.error(f"Error al notificar llegada para cédula {cedula}")
     return jsonify({'success': False, 'message': 'Error al notificar llegada'}), 400
+
 
 @app.route('/api/validar_usuario', methods=['POST'])
 def validar_usuario_api():
@@ -317,6 +320,133 @@ def register():
 def whatsapp_sim():
        return render_template('whatsapp_sim_advanced.html')
 
+
+@app.route('/api/whatsapp-interaction', methods=['POST'])
+def whatsapp_interaction():
+    data = request.json
+    message = data.get('message')
+    state = data.get('state')
+    user_data = data.get('userData', {})  # Obtenemos los datos del usuario del request
+    
+    response = process_whatsapp_message(message, state, user_data)
+    return jsonify(response)
+
+def process_whatsapp_message(message, state, user_data=None):
+    if state == 'initial':
+        if message.lower() == 'iniciar sesion':
+            return {
+                'message': 'Por favor, ingresa tu nombre de usuario:',
+                'new_state': 'esperando_usuario'
+            }
+        else:
+            return {
+                'message': 'Para comenzar, escribe "iniciar sesion"',
+                'new_state': 'initial'
+            }
+    elif state == 'esperando_usuario':
+        return {
+            'message': 'Ahora, ingresa tu contraseña:',
+            'new_state': 'esperando_password',
+            'username': message
+        }
+    elif state == 'esperando_password':
+        username = user_data.get('username') if user_data else None
+        if username and authenticate_user(username, message):
+            return {
+                'message': 'Inicio de sesión exitoso. ¿Qué deseas hacer?\n1. Ver paquetes\n2. Notificar llegada\n3. Ver estado\n4. Cerrar sesión',
+                'new_state': 'menu_principal',
+                'logged_in': True
+            }
+        else:
+            return {
+                'message': 'Usuario o contraseña incorrectos. Por favor, intenta de nuevo.',
+                'new_state': 'initial'
+            }
+    elif state == 'menu_principal':
+        if message == '1':
+            return get_user_packages(user_data.get('username'))
+        elif message == '2':
+            return notify_arrival(user_data.get('username'))
+        elif message == '3':
+            return get_package_status(user_data.get('username'))
+        elif message == '4':
+            return {
+                'message': 'Has cerrado sesión. ¡Hasta pronto!',
+                'new_state': 'initial',
+                'logged_out': True
+            }
+        else:
+            return {
+                'message': 'Opción no válida. Por favor, elige una opción del 1 al 4.',
+                'new_state': 'menu_principal'
+            }
+    return {
+        'message': 'Lo siento, no entendí eso. ¿Puedes intentar de nuevo?',
+        'new_state': state
+    }
+
+def get_user_packages(username):
+    conn = get_db_connection()
+    user = conn.execute('SELECT id FROM usuarios WHERE username = ?', (username,)).fetchone()
+    if user:
+        packages = conn.execute('SELECT descripcion, fecha FROM encomiendas WHERE destinatario_id = ? AND fecha_entrega IS NULL', (user['id'],)).fetchall()
+        conn.close()
+        if packages:
+            message = "Tus paquetes pendientes son:\n"
+            for package in packages:
+                message += f"- {package['descripcion']} (Llegó el: {package['fecha']})\n"
+        else:
+            message = "No tienes paquetes pendientes en este momento."
+    else:
+        message = "No se pudo encontrar información de tus paquetes."
+    return {
+        'message': message,
+        'new_state': 'menu_principal'
+    }
+
+def notify_arrival(username):
+    conn = get_db_connection()
+    user = conn.execute('SELECT identificacion FROM usuarios WHERE username = ?', (username,)).fetchone()
+    if user:
+        conn.execute('UPDATE usuarios SET estado = "en_camino" WHERE username = ?', (username,))
+        conn.commit()
+        conn.close()
+        crear_archivo_validacion(user['identificacion'])
+        message = "Has notificado tu llegada. Por favor, dirígete al área de recogida."
+    else:
+        message = "No se pudo notificar tu llegada. Por favor, intenta más tarde."
+    return {
+        'message': message,
+        'new_state': 'menu_principal'
+    }
+
+def get_package_status(username):
+    conn = get_db_connection()
+    user = conn.execute('SELECT id FROM usuarios WHERE username = ?', (username,)).fetchone()
+    if user:
+        packages = conn.execute('SELECT estado, COUNT(*) as count FROM encomiendas WHERE destinatario_id = ? GROUP BY estado', (user['id'],)).fetchall()
+        conn.close()
+        if packages:
+            message = "Estado de tus paquetes:\n"
+            for package in packages:
+                message += f"- {package['count']} paquete(s) en estado: {package['estado']}\n"
+        else:
+            message = "No tienes paquetes registrados en el sistema."
+    else:
+        message = "No se pudo obtener el estado de tus paquetes."
+    return {
+        'message': message,
+        'new_state': 'menu_principal'
+    }
+
+def authenticate_user(username, password):
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM usuarios WHERE username = ?', (username,)).fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user['password'], password):
+        return True
+    return False
 
 @app.route('/encomienda', methods=['GET', 'POST'])
 def encomienda():
