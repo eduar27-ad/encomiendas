@@ -115,13 +115,22 @@ def validar_usuario_api():
     if cedula:
         if validar_usuario(cedula):
             conn = get_db_connection()
-            conn.execute('UPDATE usuarios SET estado = "en_estacionamiento" WHERE identificacion = ?', (cedula,))
-            conn.commit()
-            conn.close()
-            logging.debug(f"Usuario con cédula {cedula} validado y movido a estacionamiento")
-            return jsonify({'success': True, 'message': 'Usuario validado con éxito'})
+            # Asignar estacionamiento aleatoriamente
+            garajes_disponibles = conn.execute('SELECT id FROM garajes WHERE estado = "disponible"').fetchall()
+            if garajes_disponibles:
+                garaje_asignado = random.choice(garajes_disponibles)
+                conn.execute('UPDATE usuarios SET estado = "en_estacionamiento" WHERE identificacion = ?', (cedula,))
+                conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_asignado['id'],))
+                conn.commit()
+                conn.close()
+                logging.debug(f"Usuario con cédula {cedula} validado y movido a estacionamiento {garaje_asignado['id']}")
+                return jsonify({'success': True, 'message': 'Usuario validado con éxito', 'garaje': garaje_asignado['id']})
+            else:
+                conn.close()
+                return jsonify({'success': False, 'message': 'No hay estacionamientos disponibles'}), 400
     logging.error(f"Validación fallida para cédula {cedula}")
     return jsonify({'success': False, 'message': 'Validación fallida'}), 400
+
 
 @app.route('/test')
 def test_page():
@@ -364,11 +373,11 @@ def process_whatsapp_message(message, state, user_data=None):
             }
     elif state == 'menu_principal':
         if message == '1':
-            return get_user_packages(user_data.get('username'))
+            return submenu_ver_paquetes()
         elif message == '2':
-            return notify_arrival(user_data.get('username'))
+            return submenu_notificar_llegada()
         elif message == '3':
-            return get_package_status(user_data.get('username'))
+            return submenu_ver_estado()
         elif message == '4':
             return {
                 'message': 'Has cerrado sesión. ¡Hasta pronto!',
@@ -380,8 +389,65 @@ def process_whatsapp_message(message, state, user_data=None):
                 'message': 'Opción no válida. Por favor, elige una opción del 1 al 4.',
                 'new_state': 'menu_principal'
             }
+    elif state.startswith('submenu_'):
+        return handle_submenu(state, message, user_data)
     return {
         'message': 'Lo siento, no entendí eso. ¿Puedes intentar de nuevo?',
+        'new_state': state
+    }
+
+def submenu_ver_paquetes():
+    return {
+        'message': 'Submenú Ver Paquetes:\n1. Ver todos los paquetes\n2. Buscar paquete por ID\n3. Volver al menú principal',
+        'new_state': 'submenu_ver_paquetes'
+    }
+
+def submenu_notificar_llegada():
+    return {
+        'message': 'Submenú Notificar Llegada:\n1. Notificar llegada ahora\n2. Programar llegada\n3. Volver al menú principal',
+        'new_state': 'submenu_notificar_llegada'
+    }
+
+def submenu_ver_estado():
+    return {
+        'message': 'Submenú Ver Estado:\n1. Estado de paquetes\n2. Estado de llegada\n3. Volver al menú principal',
+        'new_state': 'submenu_ver_estado'
+    }
+
+def handle_submenu(state, message, user_data):
+    if message == '3':  # Opción para volver al menú principal en todos los submenús
+        return {
+            'message': '¿Qué deseas hacer?\n1. Ver paquetes\n2. Notificar llegada\n3. Ver estado\n4. Cerrar sesión',
+            'new_state': 'menu_principal'
+        }
+    
+    if state == 'submenu_ver_paquetes':
+        if message == '1':
+            return get_user_packages(user_data.get('username'))
+        elif message == '2':
+            return {
+                'message': 'Por favor, ingresa el ID del paquete:',
+                'new_state': 'esperando_id_paquete'
+            }
+    elif state == 'submenu_notificar_llegada':
+        if message == '1':
+            return notify_arrival(user_data.get('username'))
+        elif message == '2':
+            return {
+                'message': 'Funcionalidad de programar llegada aún no implementada.',
+                'new_state': state
+            }
+    elif state == 'submenu_ver_estado':
+        if message == '1':
+            return get_package_status(user_data.get('username'))
+        elif message == '2':
+            return {
+                'message': 'Funcionalidad de ver estado de llegada aún no implementada.',
+                'new_state': state
+            }
+    
+    return {
+        'message': 'Opción no válida. Por favor, intenta de nuevo.',
         'new_state': state
     }
 
@@ -515,4 +581,4 @@ def get_updates():
     })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+     app.run(host='127.0.0.1', port=8080, debug=True)
