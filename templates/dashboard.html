@@ -495,20 +495,41 @@ function liberarEstacionamiento(accion) {
         if (data.success) {
             actualizarEstacionamiento(id, 'disponible');
             mostrarMensaje(`Estacionamiento liberado (${accion})`, 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal'));
-            if (modal) modal.hide();
+            actualizarUsuariosEnEstacionamiento();
+            actualizarInventario();
+            cerrarModal();
         } else {
             throw new Error(data.message || 'No se pudo liberar el estacionamiento');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        mostrarMensaje('Error al liberar el estacionamiento', 'error');
+        mostrarMensaje('Error al liberar el estacionamiento: ' + error.message, 'error');
     })
     .finally(() => {
         ocultarCargando();
-        ocultarOpcionesLiberacion();
     });
+}
+
+function actualizarInventario() {
+    // Actualizar el inventario completo
+    fetch('/api/inventario')
+        .then(response => response.json())
+        .then(data => {
+            const inventarioContainer = document.getElementById('inventario-container');
+            if (inventarioContainer) {
+                inventarioContainer.innerHTML = '';
+                data.forEach(item => {
+                    inventarioContainer.innerHTML += `
+                        <div class="encomienda" data-id="${item.id}">
+                            <p>Destinatario: ${item.destinatario}</p>
+                            <p>Estado: ${item.estado}</p>
+                        </div>
+                    `;
+                });
+            }
+        })
+        .catch(error => console.error('Error al actualizar inventario:', error));
 }
 
 // Función unificada para cambiar el estado del estacionamiento
@@ -541,6 +562,39 @@ function cambiarEstadoEstacionamiento(id, nuevoEstado) {
     });
 }
 
+//función para actualizar el inventario
+function actualizarInventario(encomiendaId) {
+    // Esta función debería eliminar la encomienda del inventario en la interfaz
+    const elementoEncomienda = document.querySelector(`.encomienda[data-id="${encomiendaId}"]`);
+    if (elementoEncomienda) {
+        elementoEncomienda.remove();
+    }
+}
+
+//función para actualizar la sección de usuarios en estacionamiento
+function actualizarUsuariosEnEstacionamiento() {
+    fetch('/api/usuarios_en_estacionamiento')
+        .then(response => response.json())
+        .then(data => {
+            const contenedor = document.getElementById('usuarios-en-estacionamiento');
+            contenedor.innerHTML = '';
+            data.forEach(usuario => {
+                contenedor.innerHTML += `
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${usuario.username}</h5>
+                                <p>ID: ${usuario.identificacion}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        })
+        .catch(error => {
+            console.error('Error al actualizar usuarios en estacionamiento:', error);
+        });
+}
 // Función para marcar una alerta como leída
 function marcarAlertaLeida(id) {
     fetch('/marcar_alerta_leida', {
@@ -601,15 +655,85 @@ document.getElementById('aplicarFiltros').addEventListener('click', aplicarFiltr
 
 // Inicialización de event listeners adicionales
 document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners para los estacionamientos
+    document.querySelectorAll('.estacionamiento').forEach(item => {
+        item.addEventListener('click', event => {
+            const id = event.target.dataset.id;
+            cargarDetallesEstacionamiento(id);
+        });
+    });
+
+    // Event listener para cerrar el modal y detener el cronómetro
+    const estacionamientoModal = document.getElementById('estacionamientoModal');
+    if (estacionamientoModal) {
+        estacionamientoModal.addEventListener('hidden.bs.modal', function () {
+            detenerCronometro();
+        });
+    }
+
+    // Event listeners para los botones del modal
+    const btnLiberarEstacionamiento = document.getElementById('btnLiberarEstacionamiento');
+    if (btnLiberarEstacionamiento) {
+        btnLiberarEstacionamiento.addEventListener('click', function() {
+            mostrarOpcionesLiberacion();
+        });
+    }
+
+    const btnCambiarEstado = document.getElementById('btnCambiarEstado');
+    if (btnCambiarEstado) {
+        btnCambiarEstado.addEventListener('click', function() {
+            const id = document.getElementById('estacionamientoId').textContent;
+            const estadoActual = document.getElementById('estacionamientoEstado').textContent;
+            const nuevoEstado = estadoActual === 'fuera_de_servicio' ? 'disponible' : 'fuera_de_servicio';
+            cambiarEstadoEstacionamiento(id, nuevoEstado);
+        });
+    }
+
+    // Event listeners para las opciones de liberación
     const btnEntregada = document.getElementById('btnEntregada');
     const btnNoEntregada = document.getElementById('btnNoEntregada');
     const btnCancelarLiberacion = document.getElementById('btnCancelarLiberacion');
 
-    if (btnEntregada) btnEntregada.addEventListener('click', () => liberarEstacionamiento('entregada'));
-    if (btnNoEntregada) btnNoEntregada.addEventListener('click', () => liberarEstacionamiento('no_entregada'));
-    if (btnCancelarLiberacion) btnCancelarLiberacion.addEventListener('click', ocultarOpcionesLiberacion);
-});
+    if (btnEntregada) {
+        btnEntregada.addEventListener('click', () => liberarEstacionamiento('entregada'));
+    } else {
+        console.warn('Elemento btnEntregada no encontrado');
+    }
 
+    if (btnNoEntregada) {
+        btnNoEntregada.addEventListener('click', () => liberarEstacionamiento('no_entregada'));
+    } else {
+        console.warn('Elemento btnNoEntregada no encontrado');
+    }
+
+    if (btnCancelarLiberacion) {
+        btnCancelarLiberacion.addEventListener('click', ocultarOpcionesLiberacion);
+    } else {
+        console.warn('Elemento btnCancelarLiberacion no encontrado');
+    }
+
+    // Event listeners para filtros de alertas
+    const aplicarFiltros = document.getElementById('aplicarFiltros');
+    if (aplicarFiltros) {
+        aplicarFiltros.addEventListener('click', aplicarFiltrosAlertas);
+    }
+
+    // Event listeners para exportar datos
+    const exportarCSV = document.getElementById('exportarCSV');
+    const exportarPDF = document.getElementById('exportarPDF');
+
+    if (exportarCSV) {
+        exportarCSV.addEventListener('click', () => exportarDatos('csv'));
+    }
+    if (exportarPDF) {
+        exportarPDF.addEventListener('click', () => exportarDatos('pdf'));
+    }
+
+    // Inicializar las actualizaciones
+    actualizarEstadisticas();
+    obtenerActualizaciones();
+    setInterval(obtenerActualizaciones, 30000);  // Actualizar cada 30 segundos
+});
 // Función para cerrar el modal de estacionamiento
 function cerrarModal() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('estacionamientoModal'));

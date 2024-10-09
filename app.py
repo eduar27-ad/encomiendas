@@ -325,6 +325,42 @@ def register():
     return render_template('register.html')
 
 
+@app.route('/liberar_estacionamiento', methods=['POST'])
+def liberar_estacionamiento():
+    data = request.json
+    id_estacionamiento = data['id']
+    accion = data['accion']
+    
+    conn = get_db_connection()
+    try:
+        # Verificar si el estacionamiento está ocupado
+        estacionamiento = conn.execute('SELECT estado FROM garajes WHERE id = ?', (id_estacionamiento,)).fetchone()
+        if not estacionamiento or estacionamiento['estado'] != 'ocupado':
+            return jsonify({'success': False, 'message': 'El estacionamiento no está ocupado'})
+
+        # Obtener el usuario que está ocupando el estacionamiento
+        usuario = conn.execute('SELECT id FROM usuarios WHERE estado = "en_estacionamiento"').fetchone()
+        
+        if usuario:
+            if accion == 'entregada':
+                # Marcar encomiendas como entregadas
+                conn.execute('UPDATE encomiendas SET estado = "entregada" WHERE destinatario_id = ? AND estado = "pendiente"', (usuario['id'],))
+            
+            # Actualizar estado del usuario
+            conn.execute('UPDATE usuarios SET estado = "normal" WHERE id = ?', (usuario['id'],))
+        
+        # Liberar estacionamiento
+        conn.execute('UPDATE garajes SET estado = "disponible" WHERE id = ?', (id_estacionamiento,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Operación completada con éxito'})
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+        
+
 @app.route('/whatsapp-sim')
 def whatsapp_sim():
        return render_template('whatsapp_sim_advanced.html')
