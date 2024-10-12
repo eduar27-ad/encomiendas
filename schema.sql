@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS usuarios;
 DROP TABLE IF EXISTS encomiendas;
 DROP TABLE IF EXISTS garajes;
 DROP TABLE IF EXISTS alertas;
+DROP TABLE IF EXISTS mensajes_pendientes;
 
 -- Crea la tabla de usuarios
 CREATE TABLE usuarios (
@@ -39,6 +40,15 @@ CREATE TABLE alertas (
     mensaje TEXT NOT NULL,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     leida BOOLEAN DEFAULT 0
+);
+
+-- Crea la tabla de mensajes pendientes
+CREATE TABLE mensajes_pendientes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    texto TEXT NOT NULL,
+    imagen_url TEXT,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Inicializa los garajes

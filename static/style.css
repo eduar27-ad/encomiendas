@@ -12,3 +12,17 @@
 .disponible { background-color: #28a745; color: white; }
 .ocupado { background-color: #ffc107; color: black; }
 .fuera_de_servicio { background-color: #dc3545; color: white; }
+
+#estacionamientosL {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 250px; /* Ajusta según sea necesario */
+}
+
+#estacionamientosL .estacionamiento {
+    width: 100%;
+    height: 40px;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+}

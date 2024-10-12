@@ -121,8 +121,17 @@ def validar_usuario_api():
                 garaje_asignado = random.choice(garajes_disponibles)
                 conn.execute('UPDATE usuarios SET estado = "en_estacionamiento" WHERE identificacion = ?', (cedula,))
                 conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_asignado['id'],))
+                
+                # Obtener el username del usuario
+                usuario = conn.execute('SELECT username FROM usuarios WHERE identificacion = ?', (cedula,)).fetchone()
+                
                 conn.commit()
                 conn.close()
+                
+                # Enviar mensaje al simulador de WhatsApp
+                if usuario:
+                    enviar_mensaje_whatsapp(usuario['username'], garaje_asignado['id'])
+                
                 logging.debug(f"Usuario con cédula {cedula} validado y movido a estacionamiento {garaje_asignado['id']}")
                 return jsonify({'success': True, 'message': 'Usuario validado con éxito', 'garaje': garaje_asignado['id']})
             else:
@@ -130,6 +139,17 @@ def validar_usuario_api():
                 return jsonify({'success': False, 'message': 'No hay estacionamientos disponibles'}), 400
     logging.error(f"Validación fallida para cédula {cedula}")
     return jsonify({'success': False, 'message': 'Validación fallida'}), 400
+
+def enviar_mensaje_whatsapp(username, garaje_id):
+    mensaje = f"Se te ha asignado el estacionamiento {garaje_id}."
+    imagen_url = f"/static/images/estacionamiento_{garaje_id}.jpg"
+    
+    # Guardar el mensaje pendiente en la base de datos
+    conn = get_db_connection()
+    conn.execute('INSERT INTO mensajes_pendientes (username, texto, imagen_url) VALUES (?, ?, ?)',
+                 (username, mensaje, imagen_url))
+    conn.commit()
+    conn.close()
 
 
 @app.route('/test')
@@ -220,17 +240,38 @@ def consultar_encomienda():
 
 @app.route('/activar_entrada', methods=['POST'])
 def activar_entrada():
-    """Asigna un estacionamiento disponible aleatoriamente."""
     conn = get_db_connection()
     garajes_disponibles = conn.execute('SELECT id FROM garajes WHERE estado = "disponible"').fetchall()
     if garajes_disponibles:
         garaje_asignado = random.choice(garajes_disponibles)
         conn.execute('UPDATE garajes SET estado = "ocupado" WHERE id = ?', (garaje_asignado['id'],))
         conn.commit()
+        
+        # Obtener el usuario actual (asumiendo que tienes una forma de obtener el usuario actual)
+        usuario_actual = session.get('username')  # Ajusta esto según cómo manejes las sesiones de usuario
+        
+        # Enviar mensaje al simulador de WhatsApp
+        if usuario_actual:
+            enviar_mensaje_whatsapp(usuario_actual, garaje_asignado['id'])
+        
         conn.close()
         return jsonify({'success': True, 'garaje': garaje_asignado['id']})
     conn.close()
     return jsonify({'success': False, 'message': 'No hay garajes disponibles'})
+
+# Añade estas nuevas funciones
+def enviar_mensaje_whatsapp(usuario, garaje_id):
+    mensaje = f"Se te ha asignado el estacionamiento {garaje_id}."
+    imagen_url = f"/static/images/estacionamiento_{garaje_id}.jpg"
+    
+    guardar_mensaje_pendiente(usuario, mensaje, imagen_url)
+
+def guardar_mensaje_pendiente(username, mensaje, imagen_url):
+    conn = get_db_connection()
+    conn.execute('INSERT INTO mensajes_pendientes (username, texto, imagen_url) VALUES (?, ?, ?)',
+                 (username, mensaje, imagen_url))
+    conn.commit()
+    conn.close()
 
 @app.route('/actualizar_estacionamiento', methods=['POST'])
 def actualizar_estacionamiento():
@@ -377,6 +418,19 @@ def whatsapp_interaction():
     return jsonify(response)
 
 def process_whatsapp_message(message, state, user_data=None):
+    # Verificar si hay mensajes pendientes para el usuario
+    if user_data and 'username' in user_data:
+        mensajes_pendientes = obtener_mensajes_pendientes(user_data['username'])
+        if mensajes_pendientes:
+            # Si hay mensajes pendientes, enviar el primero y eliminar de la lista
+            mensaje = mensajes_pendientes[0]
+            eliminar_mensaje_pendiente(user_data['username'], mensaje['id'])
+            return {
+                'message': mensaje['texto'],
+                'image_url': mensaje['imagen_url'],
+                'new_state': state
+            }
+        
     if state == 'initial':
         if message.lower() == 'iniciar sesion':
             return {
@@ -431,6 +485,18 @@ def process_whatsapp_message(message, state, user_data=None):
         'message': 'Lo siento, no entendí eso. ¿Puedes intentar de nuevo?',
         'new_state': state
     }
+
+def obtener_mensajes_pendientes(username):
+    conn = get_db_connection()
+    mensajes = conn.execute('SELECT id, texto, imagen_url FROM mensajes_pendientes WHERE username = ?', (username,)).fetchall()
+    conn.close()
+    return [dict(mensaje) for mensaje in mensajes]
+
+def eliminar_mensaje_pendiente(username, mensaje_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM mensajes_pendientes WHERE id = ? AND username = ?', (mensaje_id, username))
+    conn.commit()
+    conn.close()
 
 def submenu_ver_paquetes():
     return {
