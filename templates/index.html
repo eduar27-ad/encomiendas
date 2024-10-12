@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-fluid px-4"></div>
+<div class="container-fluid px-4">
     <h1 class="text-center my-3">Sistema de Gestión de Encomiendas</h1>
     
+    <!-- Sección de estacionamientos con opción de cambio de vista -->
     <div class="row mb-4">
-        <!-- Mapa de Estacionamientos (Tamaño reducido) -->
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="h4 mb-0">Estado de Estacionamientos</h2>
+                    <!-- Nuevo botón para cambiar la visualización -->
+                    <button id="toggleView" class="btn btn-sm btn-outline-primary">Cambiar Vista</button>
                 </div>
                 <div class="card-body">
-                    <div id="estacionamientos" class="row row-cols-5 g-2 mb-3">
+                    <!-- Vista en grid (actual) -->
+                    <div id="estacionamientosGrid" class="row row-cols-5 g-2 mb-3">
                         {% for estacionamiento in estacionamientos %}
                         <div class="col">
                             <div class="estacionamiento {{ estacionamiento.estado }} p-2 text-center text-white" style="height: 40px; font-size: 0.8rem;" data-id="{{ estacionamiento.id }}">
@@ -19,6 +22,10 @@
                             </div>
                         </div>
                         {% endfor %}
+                    </div>
+                    <!-- Nueva vista en L (inicialmente oculta) -->
+                    <div id="estacionamientosL" class="mb-3" style="display: none;">
+                        <!-- Se llenará dinámicamente con JavaScript -->
                     </div>
                     <div class="d-flex justify-content-center">
                         <span class="badge bg-success me-2">Disponible</span>
@@ -29,7 +36,7 @@
             </div>
         </div>
 
-        <!-- Formulario de Consulta (al lado del mapa) -->
+        <!-- Formulario de Consulta (sin cambios) -->
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header">
@@ -50,221 +57,361 @@
         </div>
     </div>
 
-    <!-- Secciones de Usuarios (tamaño fijo) -->
-    <div class="row">
-        <!-- Usuarios en Camino -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="h4 mb-0">Usuarios en Camino</h2>
-                </div>
-                <div class="card-body" style="height: 300px; overflow-y: auto;">
-                    <div id="usuarios-en-camino" class="row row-cols-1 row-cols-md-2 g-2">
-                        {% for usuario in usuarios_en_camino %}
-                        <div class="col">
-                            <div class="card h-100" onclick="mostrarDetallesUsuario('{{ usuario.id }}')">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ usuario.username }}</h5>
-                                    <p class="card-text">ID: {{ usuario.identificacion }}</p>
-                                </div>
+<!-- Secciones de Usuarios -->
+<div class="row">
+    <!-- Usuarios en Camino -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h4 mb-0">Usuarios en Camino</h2>
+            </div>
+            <div class="card-body" style="height: 300px; overflow-y: auto;">
+                <div id="usuarios-en-camino" class="row row-cols-1 row-cols-md-2 g-2">
+                    {% for usuario in usuarios_en_camino %}
+                    <div class="col">
+                        <div class="card h-100" onclick="mostrarDetallesUsuario('{{ usuario.id }}')">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ usuario.username }}</h5>
+                                <p class="card-text">ID: {{ usuario.identificacion }}</p>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Usuarios en Estacionamiento -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="h4 mb-0">Usuarios en Estacionamiento</h2>
-                </div>
-                <div class="card-body" style="height: 300px; overflow-y: auto;">
-                    <div id="usuarios-en-estacionamiento" class="row row-cols-1 row-cols-md-2 g-2">
-                        {% for usuario in usuarios_en_estacionamiento %}
-                        <div class="col">
-                            <div class="card h-100" onclick="mostrarDetallesUsuario('{{ usuario.id }}')">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ usuario.username }}</h5>
-                                    <p class="card-text">ID: {{ usuario.identificacion }}</p>
-                                </div>
+    <!-- Usuarios en Estacionamiento -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h4 mb-0">Usuarios en Estacionamiento</h2>
+            </div>
+            <div class="card-body" style="height: 300px; overflow-y: auto;">
+                <div id="usuarios-en-estacionamiento" class="row row-cols-1 row-cols-md-2 g-2">
+                    {% for usuario in usuarios_en_estacionamiento %}
+                    <div class="col">
+                        <div class="card h-100" onclick="mostrarDetallesUsuario('{{ usuario.id }}')">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ usuario.username }}</h5>
+                                <p class="card-text">ID: {{ usuario.identificacion }}</p>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+</div>
 
-<!-- Modal para detalles de usuario -->
+<!-- Modal para detalles de usuario (sin cambios) -->
 <div class="modal fade" id="usuarioModal" tabindex="-1" aria-labelledby="usuarioModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="usuarioModalLabel">Detalles del Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <img id="usuarioFoto" src="" alt="Foto de perfil" class="img-fluid rounded-circle mb-3">
-                <p><strong>Nombre:</strong> <span id="usuarioNombre"></span></p>
-                <p><strong>Identificación:</strong> <span id="usuarioIdentificacion"></span></p>
-                <p><strong>Estado:</strong> <span id="usuarioEstado"></span></p>
-                <h6>Encomiendas:</h6>
-                <ul id="usuarioEncomiendas"></ul>
-            </div>
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="usuarioModalLabel">Detalles del Usuario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <img id="usuarioFoto" src="" alt="Foto de perfil" class="img-fluid rounded-circle mb-3">
+            <p><strong>Nombre:</strong> <span id="usuarioNombre"></span></p>
+            <p><strong>Identificación:</strong> <span id="usuarioIdentificacion"></span></p>
+            <p><strong>Estado:</strong> <span id="usuarioEstado"></span></p>
+            <h6>Encomiendas:</h6>
+            <ul id="usuarioEncomiendas"></ul>
         </div>
     </div>
 </div>
+</div>
 
-<!-- Modal para resultado de consulta -->
+<!-- Modal para resultado de consulta (sin cambios) -->
 <div class="modal fade" id="resultadoConsultaModal" tabindex="-1" aria-labelledby="resultadoConsultaModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="resultadoConsultaModalLabel">Resultado de la Consulta</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="modalMessage" class="alert d-none"></div>
-                <div id="infoUsuario"></div>
-                <div id="listaEncomiendas" class="mt-3">
-                    <h6 class="mb-2">Encomiendas pendientes:</h6>
-                    <div id="encomiendas-list"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" id="btnActivarEntrada">Activar Entrada</button>
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="resultadoConsultaModalLabel">Resultado de la Consulta</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div id="modalMessage" class="alert d-none"></div>
+            <div id="infoUsuario"></div>
+            <div id="listaEncomiendas" class="mt-3">
+                <h6 class="mb-2">Encomiendas pendientes:</h6>
+                <div id="encomiendas-list"></div>
             </div>
         </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="button" class="btn btn-primary" id="btnActivarEntrada">Activar Entrada</button>
+        </div>
     </div>
+</div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function actualizarUsuarios() {
-    fetch('/api/usuarios_en_camino')
-        .then(response => response.json())
-        .then(usuarios => {
-            const contenedor = document.getElementById('usuarios-en-camino');
-            contenedor.innerHTML = usuarios.map(usuario => `
-                <div class="col">
-                    <div class="card h-100" onclick="mostrarDetallesUsuario('${usuario.id}')">
-                        <div class="card-body">
-                            <h5 class="card-title">${usuario.username}</h5>
-                            <p class="card-text">ID: ${usuario.identificacion}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            console.log('Usuarios en camino actualizados:', usuarios);
-        });
+    // Función para cambiar entre vistas de estacionamientos
+    function toggleEstacionamientosView() {
+        const gridView = document.getElementById('estacionamientosGrid');
+        const lView = document.getElementById('estacionamientosL');
+        const toggleBtn = document.getElementById('toggleView');
 
-    fetch('/api/usuarios_en_estacionamiento')
-        .then(response => response.json())
-        .then(usuarios => {
-            const contenedor = document.getElementById('usuarios-en-estacionamiento');
-            contenedor.innerHTML = usuarios.map(usuario => `
-                <div class="col">
-                    <div class="card h-100" onclick="mostrarDetallesUsuario('${usuario.id}')">
-                        <div class="card-body">
-                            <h5 class="card-title">${usuario.username}</h5>
-                            <p class="card-text">ID: ${usuario.identificacion}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            console.log('Usuarios en estacionamiento actualizados:', usuarios);
-        });
-}
+        if (gridView.style.display !== 'none') {
+            // Cambiar a vista L
+            gridView.style.display = 'none';
+            lView.style.display = 'flex';
+            toggleBtn.textContent = 'Ver Grid';
+            if (lView.children.length === 0) createLView();
+        } else {
+            // Cambiar a vista Grid
+            lView.style.display = 'none';
+            gridView.style.display = 'flex';
+            toggleBtn.textContent = 'Ver L';
+        }
+    }
 
-// Actualizar cada 30 segundos
-setInterval(actualizarUsuarios, 30000);
+    // Función para crear la vista en L
+    function createLView() {
+    const lView = document.getElementById('estacionamientosL');
+    const estacionamientos = Array.from(document.querySelectorAll('#estacionamientosGrid .estacionamiento'));
+    
+    lView.innerHTML = ''; // Limpiar el contenido existente
+    
+    // Crear el contenedor principal
+    const lContainer = document.createElement('div');
+    lContainer.style.display = 'flex';
+    lContainer.style.flexDirection = 'column';
+    lContainer.style.width = '100%';
+    lContainer.style.height = '300px'; // Ajusta según necesites
 
-// Actualizar inmediatamente al cargar la página
-document.addEventListener('DOMContentLoaded', actualizarUsuarios);
+    // Crear la fila horizontal (B)
+    const horizontalRow = document.createElement('div');
+    horizontalRow.style.display = 'flex';
+    horizontalRow.style.flexDirection = 'row';
+    horizontalRow.style.height = '50px';
+    horizontalRow.style.marginBottom = '10px';
 
+    // Crear la columna vertical (A)
+    const verticalCol = document.createElement('div');
+    verticalCol.style.display = 'flex';
+    verticalCol.style.flexDirection = 'column';
+    verticalCol.style.width = '50px';
+    verticalCol.style.marginLeft = 'auto'; // Alinea a la derecha
 
-        function mostrarDetallesUsuario(id) {
-    fetch(`/api/usuario/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('usuarioFoto').src = "{{ url_for('static', filename='default-profile.jpg') }}";
-            document.getElementById('usuarioNombre').textContent = data.username;
-            document.getElementById('usuarioIdentificacion').textContent = data.identificacion;
-            document.getElementById('usuarioEstado').textContent = data.estado;
-            const listaEncomiendas = document.getElementById('usuarioEncomiendas');
-            listaEncomiendas.innerHTML = '';
-            if (data.encomiendas && data.encomiendas.length > 0) {
-                data.encomiendas.forEach(encomienda => {
-                    const li = document.createElement('li');
-                    li.textContent = encomienda;
-                    listaEncomiendas.appendChild(li);
-                });
-            } else {
-                listaEncomiendas.innerHTML = '<li>No hay encomiendas pendientes</li>';
-            }
-            new bootstrap.Modal(document.getElementById('usuarioModal')).show();
-        })
-        .catch(error => console.error('Error:', error));
-}
-    document.getElementById("consultaForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        fetch("/consultar_encomienda", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            const modal = new bootstrap.Modal(document.getElementById("resultadoConsultaModal"));
-            if (data.success) {
-                document.getElementById("infoUsuario").textContent = `Usuario: ${data.usuario}`;
-                const encomiendasList = document.getElementById("encomiendas-list");
-                encomiendasList.innerHTML = data.encomiendas.map(e => 
-                    `<div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${e.id}" id="encomienda${e.id}">
-                        <label class="form-check-label" for="encomienda${e.id}">
-                            ${e.descripcion} - Llegó: ${e.fecha}
-                        </label>
-                    </div>`
-                ).join("");
-                document.getElementById("modalMessage").classList.add("d-none");
-            } else {
-                document.getElementById("modalMessage").textContent = data.message;
-                document.getElementById("modalMessage").classList.remove("d-none");
-                document.getElementById("infoUsuario").textContent = "";
-                document.getElementById("encomiendas-list").innerHTML = "";
-            }
-            modal.show();
-        })
-        .catch(error => console.error("Error:", error));
+    estacionamientos.forEach((estacionamiento, index) => {
+        const clone = estacionamiento.cloneNode(true);
+        clone.style.margin = '2px';
+        clone.style.flex = '1';
+
+        if (index < 5) {
+            // Primeros 5 en la fila horizontal (B)
+            clone.style.width = 'calc(20% - 4px)'; // 20% del ancho menos los márgenes
+            horizontalRow.appendChild(clone);
+        } else {
+            // Últimos 5 en la columna vertical (A)
+            clone.style.height = 'calc(20% - 4px)'; // 20% de la altura menos los márgenes
+            verticalCol.appendChild(clone);
+        }
     });
 
-    document.getElementById("btnActivarEntrada").addEventListener("click", function() {
+    lContainer.appendChild(horizontalRow);
+    lContainer.appendChild(verticalCol);
+    lView.appendChild(lContainer);
+ }
+
+    // Función para actualizar usuarios
+    function actualizarUsuarios() {
+        fetch('/api/usuarios_en_camino')
+            .then(response => response.json())
+            .then(usuarios => {
+                actualizarSeccionUsuarios('usuarios-en-camino', usuarios);
+            })
+            .catch(error => console.error('Error al actualizar usuarios en camino:', error));
+
+        fetch('/api/usuarios_en_estacionamiento')
+            .then(response => response.json())
+            .then(usuarios => {
+                actualizarSeccionUsuarios('usuarios-en-estacionamiento', usuarios);
+            })
+            .catch(error => console.error('Error al actualizar usuarios en estacionamiento:', error));
+    }
+
+    // Función auxiliar para actualizar sección de usuarios
+    function actualizarSeccionUsuarios(containerId, usuarios) {
+        const contenedor = document.getElementById(containerId);
+        contenedor.innerHTML = usuarios.map(usuario => `
+            <div class="col">
+                <div class="card h-100" onclick="mostrarDetallesUsuario('${usuario.id}')">
+                    <div class="card-body">
+                        <h5 class="card-title">${usuario.username}</h5>
+                        <p class="card-text">ID: ${usuario.identificacion}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Función para mostrar detalles del usuario
+    function mostrarDetallesUsuario(id) {
+        fetch(`/api/usuario/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('usuarioFoto').src = "{{ url_for('static', filename='default-profile.jpg') }}";
+                document.getElementById('usuarioNombre').textContent = data.username;
+                document.getElementById('usuarioIdentificacion').textContent = data.identificacion;
+                document.getElementById('usuarioEstado').textContent = data.estado;
+                
+                const listaEncomiendas = document.getElementById('usuarioEncomiendas');
+                listaEncomiendas.innerHTML = data.encomiendas && data.encomiendas.length > 0
+                    ? data.encomiendas.map(encomienda => `<li>${encomienda}</li>`).join('')
+                    : '<li>No hay encomiendas pendientes</li>';
+
+                new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+            })
+            .catch(error => console.error('Error al cargar detalles del usuario:', error));
+    }
+
+    // Event listeners y inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('toggleView').addEventListener('click', toggleEstacionamientosView);
+        
+        document.getElementById("consultaForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch("/consultar_encomienda", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                mostrarResultadoConsulta(data);
+            })
+            .catch(error => console.error("Error en la consulta:", error));
+        });
+
+        document.getElementById("btnActivarEntrada").addEventListener("click", activarEntrada);
+
+        actualizarUsuarios();
+        setInterval(actualizarUsuarios, 30000); // Actualizar cada 30 segundos
+    });
+
+// Función para mostrar el resultado de la consulta
+    function mostrarResultadoConsulta(data) {
+        const modal = new bootstrap.Modal(document.getElementById("resultadoConsultaModal"));
+        const modalMessage = document.getElementById("modalMessage");
+        const infoUsuario = document.getElementById("infoUsuario");
+        const encomiendasList = document.getElementById("encomiendas-list");
+
+        if (data.success) {
+            modalMessage.classList.add("d-none");
+            infoUsuario.textContent = `Usuario: ${data.usuario}`;
+            encomiendasList.innerHTML = data.encomiendas.map(e => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${e.id}" id="encomienda${e.id}">
+                    <label class="form-check-label" for="encomienda${e.id}">
+                        ${e.descripcion} - Llegó: ${e.fecha}
+                    </label>
+                </div>
+            `).join("");
+        } else {
+            modalMessage.textContent = data.message;
+            modalMessage.classList.remove("d-none");
+            infoUsuario.textContent = "";
+            encomiendasList.innerHTML = "";
+        }
+        modal.show();
+    }
+
+    // Función para activar la entrada
+    function activarEntrada() {
         fetch("/activar_entrada", {
             method: "POST"
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(`Se ha asignado el estacionamiento ${data.garaje}`);
-                location.reload();  // Recargar la página para actualizar el estado de los estacionamientos
+                mostrarMensaje(`Se ha asignado el estacionamiento ${data.garaje}`, 'success');
+                actualizarEstacionamientos();
             } else {
-                alert(data.message);
+                mostrarMensaje(data.message, 'error');
             }
         })
-        .catch(error => console.error("Error:", error));
+        .catch(error => {
+            console.error("Error al activar entrada:", error);
+            mostrarMensaje("Error al activar la entrada", 'error');
+        });
+    }
+
+    // Función para mostrar mensajes
+    function mostrarMensaje(mensaje, tipo) {
+        const alertPlaceholder = document.getElementById('liveAlertPlaceholder');
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = [
+            `<div class="alert alert-${tipo} alert-dismissible" role="alert">`,
+            `   <div>${mensaje}</div>`,
+            '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+            '</div>'
+        ].join('');
+        alertPlaceholder.append(wrapper);
+
+        // Remover la alerta después de 5 segundos
+        setTimeout(() => {
+            const alert = bootstrap.Alert.getOrCreateInstance(wrapper.firstElementChild);
+            alert.close();
+        }, 5000);
+    }
+
+    // Función para actualizar los estacionamientos
+    function actualizarEstacionamientos() {
+        fetch('/api/estacionamientos')
+            .then(response => response.json())
+            .then(estacionamientos => {
+                estacionamientos.forEach(est => {
+                    const estElement = document.querySelector(`.estacionamiento[data-id="${est.id}"]`);
+                    if (estElement) {
+                        estElement.className = `estacionamiento ${est.estado} p-2 text-center text-white`;
+                    }
+                });
+                actualizarVistaL();
+            })
+            .catch(error => console.error('Error al actualizar estacionamientos:', error));
+    }
+
+    // Función para actualizar la vista en L
+    function actualizarVistaL() {
+        const lView = document.getElementById('estacionamientosL');
+        if (lView.style.display !== 'none') {
+            lView.innerHTML = '';
+            createLView();
+        }
+    }
+
+    // Mejorar la experiencia de usuario al hacer clic en los estacionamientos
+    document.querySelectorAll('.estacionamiento').forEach(estacionamiento => {
+        estacionamiento.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const estado = this.classList[1]; // Asumiendo que la segunda clase es el estado
+            mostrarDetallesEstacionamiento(id, estado);
+        });
     });
 
-    // Actualizar la página cada 30 segundos
-    setInterval(function() {
-        location.reload();
-    }, 30000);
+    // Función para mostrar detalles del estacionamiento
+    function mostrarDetallesEstacionamiento(id, estado) {
+        // Aquí puedes implementar la lógica para mostrar un modal o un tooltip
+        // con más información sobre el estacionamiento seleccionado
+        console.log(`Estacionamiento ${id} seleccionado. Estado: ${estado}`);
+        // Por ejemplo, podrías abrir un modal con más detalles:
+        // openEstacionamientoModal(id, estado);
+    }
+
+    // Actualización periódica
+    setInterval(() => {
+        actualizarUsuarios();
+        actualizarEstacionamientos();
+    }, 30000); // Actualizar cada 30 segundos
 </script>
 {% endblock %}
