@@ -23,6 +23,7 @@ CREATE TABLE encomiendas (
     dimensiones TEXT,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_entrega TIMESTAMP,
+    estado TEXT DEFAULT 'pendiente',
     FOREIGN KEY (destinatario_id) REFERENCES usuarios (id)
 );
 
